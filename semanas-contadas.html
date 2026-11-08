@@ -1,0 +1,1104 @@
+<title>Semanas contadas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Young+Serif&display=swap">
+<style>
+/* Layout: one calm column (max 720px) under a sticky tab strip. Sections breathe on space and hairlines;
+   only "Lo importante hoy" and the year-in-weeks grid are set off as objects. */
+:root{
+  --paper:#EDF1EF; --surface:#F8FAF9; --ink:#16272A; --muted:#566769; --line:#D2DBD9;
+  --lake:#1E5D78; --lake-soft:#D3E4EA; --on-lake:#FFFFFF;
+  --ember:#925E10; --ember-soft:#F2E3C6;
+  --cell:#DFE7E5;
+  --display:"Young Serif","Iowan Old Style",Georgia,serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1618; --surface:#152023; --ink:#E1EAE9; --muted:#93A5A6; --line:#26363A;
+    --lake:#7DB8D1; --lake-soft:#183340; --on-lake:#0B1416;
+    --ember:#DDA650; --ember-soft:#36290F; --cell:#1B282B; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1618; --surface:#152023; --ink:#E1EAE9; --muted:#93A5A6; --line:#26363A;
+  --lake:#7DB8D1; --lake-soft:#183340; --on-lake:#0B1416;
+  --ember:#DDA650; --ember-soft:#36290F; --cell:#1B282B; color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-weight:400;margin:0;text-wrap:balance}
+h1,h2{font-family:var(--display)}
+p{margin:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--lake);outline-offset:2px;border-radius:6px}
+
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-direction:column;gap:6px;padding-block:12px 0}
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand b{font-family:var(--display);font-weight:400;font-size:19px;letter-spacing:.01em}
+.brand .meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin-inline:-8px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs a{flex:0 0 auto;padding:8px 10px 10px;text-decoration:none;color:var(--muted);font-size:15px;border-bottom:2px solid transparent}
+.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--lake);font-weight:700}
+.save{font-size:12px;color:var(--muted);letter-spacing:.04em}
+
+main.wrap{padding-block:20px 72px;display:flex;flex-direction:column;gap:32px}
+fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-direction:column;gap:32px}
+
+.banner{background:var(--ember-soft);color:var(--ink);border-radius:var(--r);padding:12px 14px;font-size:15px}
+.status{color:var(--muted);font-size:15px}
+
+/* section heads */
+.block{display:flex;flex-direction:column;gap:14px}
+.block-h{display:flex;flex-direction:column;gap:2px}
+.block-h h2{font-size:22px;line-height:1.2}
+.hint{color:var(--muted);font-size:14px}
+.label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+
+/* today head */
+.dayhead{display:flex;flex-direction:column;gap:10px}
+.daynav{display:flex;align-items:center;gap:10px}
+.daynav h1{font-size:clamp(26px,6vw,34px);line-height:1.1;flex:1;min-width:0}
+.navbtn{width:40px;height:40px;flex:0 0 40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:20px;line-height:1}
+.navbtn:disabled{opacity:.35;cursor:default}
+.linkbtn{background:none;border:0;padding:0;color:var(--lake);cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-size:15px;align-self:flex-start}
+.principle{font-style:italic;color:var(--muted);max-width:60ch}
+.weekfocus{font-size:15px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:baseline}
+.weekfocus span.it{background:var(--lake-soft);border-radius:999px;padding:2px 10px}
+
+.ritual{border:1px dashed var(--lake);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.ritual .row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* the three */
+.three{list-style:none;margin:0;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column}
+.three li{display:flex;align-items:center;gap:10px;padding:6px 8px}
+.three li+li{border-top:1px solid var(--line)}
+.three input{flex:1;min-width:0;border:0;background:transparent;padding:8px 0;font-size:17px}
+.three input::placeholder{color:var(--muted);opacity:.8}
+.three li.is-done input{text-decoration:line-through;text-decoration-color:var(--muted);color:var(--muted)}
+.check{width:30px;height:30px;flex:0 0 30px;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer;color:transparent;font-size:15px;font-weight:700;display:grid;place-items:center}
+.check[aria-pressed="true"]{background:var(--lake);border-color:var(--lake);color:var(--on-lake)}
+
+/* anchors */
+.anchors{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.anchor{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:12px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);cursor:pointer;min-height:76px}
+.anchor .a-label{font-weight:700;display:flex;align-items:center;gap:8px}
+.anchor .a-hint{font-size:13px;color:var(--muted)}
+.anchor .tick{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:0 0 18px}
+.anchor[aria-pressed="true"]{background:var(--lake-soft);border-color:var(--lake)}
+.anchor[aria-pressed="true"] .tick{background:var(--lake);border-color:var(--lake);box-shadow:inset 0 0 0 3px var(--lake-soft)}
+
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:560px){.pair{grid-template-columns:1fr}}
+.pair>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pair h3{font-size:15px;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-width:44px;padding:7px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--lake);border-color:var(--lake);color:var(--on-lake);font-weight:700}
+.meta{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+.stepper output{min-width:76px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.meter{height:6px;border-radius:999px;background:var(--cell);overflow:hidden}
+.meter span{display:block;height:100%;background:var(--lake);border-radius:999px}
+.meter.over span{background:var(--ember)}
+
+/* rhythms */
+.rhythms{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rhythm{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);cursor:pointer;text-align:left}
+.rhythm .r-label{min-width:0}
+.rhythm .r-area{display:block;font-size:12px;color:var(--muted)}
+.rhythm[aria-pressed="true"]{border-color:var(--lake);background:var(--lake-soft)}
+.rhythm.met:not([aria-pressed="true"]) .r-label{color:var(--muted)}
+.dots{display:flex;gap:4px;align-items:center;flex:0 0 auto}
+.dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--muted);display:inline-block}
+.dot.on{background:var(--lake);border-color:var(--lake)}
+.extra{font-size:12px;color:var(--lake);font-weight:700}
+
+/* upcoming dates */
+.dates{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.dates li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.dates li:last-child{border-bottom:1px solid var(--line)}
+.dates .when{width:56px;flex:0 0 56px;font-variant-numeric:tabular-nums}
+.dates .when b{display:block;font-family:var(--display);font-weight:400;font-size:22px;line-height:1}
+.dates .when small{color:var(--muted);font-size:12px}
+.dates .what{flex:1;min-width:0}
+.dates .what small{display:block;color:var(--muted);font-size:13px}
+.kind{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:999px;margin-right:6px}
+.kind.pago{background:var(--ember-soft);color:var(--ember)}
+.kind.cobro{background:var(--lake-soft);color:var(--lake)}
+.late{color:var(--ember);font-weight:700}
+.pill{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:14px;white-space:nowrap}
+.pill[aria-pressed="true"]{background:var(--lake);border-color:var(--lake);color:var(--on-lake)}
+.pill.danger{color:var(--ember);border-color:var(--ember)}
+.pill.solid{background:var(--lake);border-color:var(--lake);color:var(--on-lake)}
+
+/* done list */
+.donelist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.donelist li{display:flex;gap:10px;align-items:baseline;padding:4px 0}
+.donelist li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ember);flex:0 0 8px;transform:translateY(-1px)}
+.donelist li.auto{color:var(--muted)}
+.donelist li.auto::before{background:var(--lake)}
+.donelist .x{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0 4px}
+.empty{color:var(--muted);font-size:15px}
+form.add{display:flex;gap:8px}
+form.add input{flex:1;min-width:0}
+.field,form.add input,textarea,select,input[type="date"],input[type="number"],input[type="text"]{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 11px}
+textarea{width:100%;resize:vertical;min-height:64px}
+.btn{padding:9px 14px;border-radius:8px;border:1px solid var(--lake);background:var(--lake);color:var(--on-lake);cursor:pointer;font-weight:700}
+.btn.ghost{background:transparent;color:var(--lake)}
+fieldset:disabled button,fieldset:disabled input,fieldset:disabled textarea{cursor:default;opacity:.6}
+.stack{display:flex;flex-direction:column;gap:6px}
+.stack label{font-size:14px;font-weight:700}
+
+/* week */
+.weeknav{display:flex;align-items:center;gap:10px}
+.weeknav h1{font-size:clamp(22px,5vw,28px);flex:1;min-width:0;line-height:1.15}
+.stats{display:flex;flex-wrap:wrap;gap:8px 24px}
+.stat{display:flex;flex-direction:column}
+.stat b{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+.planbox{display:flex;flex-direction:column;gap:12px}
+.plan3{display:flex;flex-direction:column;gap:6px}
+.plan3 input{width:100%}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-inline:-4px;padding-inline:4px}
+table.matrix{border-collapse:collapse;width:100%;min-width:340px;font-size:14px}
+.matrix th,.matrix td{padding:4px 2px;text-align:center}
+.matrix thead th{font-weight:700;font-size:13px;color:var(--muted)}
+.matrix thead th small{display:block;font-weight:400;font-variant-numeric:tabular-nums}
+.matrix thead th.is-today{color:var(--lake)}
+.matrix tbody th{text-align:left;font-weight:400;padding-right:8px;max-width:180px;line-height:1.25}
+.matrix tr.grp th{padding-top:14px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.matrix tbody tr:not(.grp){border-top:1px solid var(--line)}
+.cell{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--line);background:transparent;cursor:pointer;padding:0}
+.cell[aria-pressed="true"]{background:var(--lake);border-color:var(--lake)}
+.cell:disabled{border-style:dashed;opacity:.4;cursor:default}
+.matrix td.val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.matrix td.tot{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;padding-left:8px}
+.matrix td.tot.met{color:var(--lake)}
+@media (max-width:520px){.matrix tbody th{max-width:112px;font-size:13px}.matrix th,.matrix td{padding:3px 1px}.cell{width:26px;height:26px}}
+
+/* month */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{font-size:12px;color:var(--muted);text-align:center;font-weight:700}
+.cal .c{aspect-ratio:1/1;max-width:100%;border-radius:8px;background:var(--surface);border:1px solid var(--line);padding:4px;display:flex;flex-direction:column;justify-content:space-between;font-size:13px;font-variant-numeric:tabular-nums;min-width:0}
+.cal .c.blank{background:transparent;border-color:transparent}
+.cal .c.today{border-color:var(--lake);border-width:2px}
+.cal .marks{display:flex;gap:3px;flex-wrap:wrap}
+.cal .m{width:8px;height:8px;border-radius:50%}
+.cal .m.pago{border:1.5px solid var(--ember)}
+.cal .m.cobro{border:1.5px solid var(--lake)}
+.cal .m.pago.ok{background:var(--ember)}
+.cal .m.cobro.ok{background:var(--lake)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.kdform{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+.kdform .full{grid-column:1/-1}
+@media (max-width:520px){.kdform{grid-template-columns:1fr 1fr}.kdform .wide{grid-column:1/-1}}
+.kdform input,.kdform select{width:100%;min-width:0}
+.checkrow{display:flex;gap:10px;align-items:center}
+.checkrow input{width:20px;height:20px;accent-color:var(--lake)}
+
+/* trend */
+.year{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.yeargrid{display:grid;grid-template-columns:repeat(13,1fr);gap:4px;max-width:420px}
+.wk{aspect-ratio:1/1;border-radius:4px;background:var(--cell);border:0;padding:0;cursor:pointer;max-width:100%}
+.wk.future{background:transparent;outline:1px dashed var(--line);outline-offset:-1px;cursor:default}
+.wk.now{outline:2px solid var(--ink);outline-offset:1px}
+.wk.none{background:var(--cell)}
+.lifeline{display:flex;flex-direction:column;gap:6px;max-width:420px}
+.lifeline .bar{height:6px;border-radius:999px;background:var(--cell);overflow:hidden}
+.lifeline .bar span{display:block;height:100%;background:var(--ink);opacity:.75}
+.spark{width:100%;height:auto;display:block}
+.spark .ax{fill:var(--muted);font-size:12px;font-family:var(--body)}
+.spark .grid{stroke:var(--line);stroke-width:1}
+.spark .ln{fill:none;stroke:var(--lake);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.spark .ar{fill:var(--lake);opacity:.12}
+.spark .pt{fill:var(--lake)}
+.spark .pt.open{fill:var(--paper);stroke:var(--lake);stroke-width:2}
+.trendline{font-size:17px;max-width:60ch}
+.heat{display:grid;gap:4px;align-items:center;min-width:420px}
+.heat .hl{font-size:14px;padding-right:8px;line-height:1.2}
+.heat .hh{font-size:12px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.heat .hc{height:28px;border-radius:6px}
+.heat .hc.na{background:transparent;border:1px dashed var(--line)}
+.scale{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+.scale i{width:18px;height:12px;border-radius:3px;display:inline-block}
+table.weeks{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums;min-width:360px}
+.weeks th,.weeks td{padding:8px 6px;text-align:right;border-top:1px solid var(--line)}
+.weeks th:first-child,.weeks td:first-child{text-align:left}
+.weeks thead th{border-top:0;color:var(--muted);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+
+/* settings */
+.setlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.setlist li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.setlist li input[type="text"]{flex:1 1 180px;min-width:0}
+.setlist select{flex:0 1 150px;min-width:0}
+.setlist .tgt{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.setlist .tgt button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+.setlist input[type="checkbox"]{width:20px;height:20px;accent-color:var(--lake)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+.grid2 input{width:100%;min-width:0}
+.prose{max-width:62ch;display:flex;flex-direction:column;gap:10px;color:var(--ink)}
+.prose p{color:var(--muted)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:999px;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
+
+@media (prefers-reduced-motion: no-preference){
+  .anchor,.chip,.check,.rhythm,.cell,.pill{transition:background-color .15s ease,border-color .15s ease}
+}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><b>Semanas contadas</b><span class="meta" id="lifeweeks"></span></div>
+    <nav class="tabs" aria-label="Secciones">
+      <a href="#hoy" data-v="hoy">Hoy</a>
+      <a href="#semana" data-v="semana">Semana</a>
+      <a href="#mes" data-v="mes">Mes</a>
+      <a href="#tendencia" data-v="tendencia">Tendencia</a>
+      <a href="#ajustes" data-v="ajustes">Ajustes</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="view" aria-live="polite"><p class="status">Abriendo tus semanas…</p></main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- content ---------- */
+const PRINCIPLES = [
+  'Nunca vas a terminarlo todo. Elegir qué dejar fuera también es planear.',
+  'Lo que no hiciste hoy no es una deuda. Mañana empieza en limpio.',
+  'Tres cosas bien elegidas pesan más que veinte a medias.',
+  'Tu atención es tu vida: donde la pones, ahí estás.',
+  'Lo pequeño y constante gana. Paciencia antes que intensidad.',
+  'El descanso no necesita justificarse.',
+  'Este rato con Emilia no es una pausa entre tareas. Es la vida misma.',
+  'Decide de antemano en qué vas a quedarte corto esta semana.',
+  'Cierra el día con lo que sí hiciste, no con lo que faltó.',
+  'La vida no empieza cuando tengas tiempo. Ya es esta semana.',
+  'Hacer una cosa a la vez es más rápido de lo que parece.',
+  'No hace falta optimizar el ocio. Basta con elegirlo.'
+];
+const AREAS = {
+  mente:'Mente', cuerpo:'Cuerpo', familia:'Familia', amigos:'Amigos', naturaleza:'Naturaleza',
+  trabajo:'Trabajo y dinero', crecimiento:'Crecimiento', creatividad:'Creatividad', hogar:'Hogar', ocio:'Ocio elegido'
+};
+const DEFAULT_CFG = {
+  birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:6,
+  anchors:[
+    {id:'meditar', label:'Meditar', hint:'Aunque sean 5 minutos', area:'mente', active:true},
+    {id:'agenda',  label:'Mirar la agenda', hint:'2 minutos: qué importa hoy', area:'mente', active:true},
+    {id:'mover',   label:'Moverme', hint:'Ejercicio, caminar, estirar', area:'cuerpo', active:true},
+    {id:'comer',   label:'Comer bien', hint:'Comida de verdad, sin prisa', area:'cuerpo', active:true},
+    {id:'leer',    label:'Leer con foco', hint:'Un bloque sin pantalla', area:'mente', active:true},
+    {id:'emilia',  label:'Jugar con Emilia', hint:'Presente, sin teléfono', area:'familia', active:true}
+  ],
+  rhythms:[
+    {id:'trabajo',   label:'Bloque de trabajo profundo', area:'trabajo', target:5, active:true},
+    {id:'finanzas',  label:'Revisar finanzas', area:'trabajo', target:1, active:true},
+    {id:'papas',     label:'Llamar a mis papás y mandar fotos de Emilia', area:'familia', target:2, active:true},
+    {id:'lejos',     label:'Escribir a un amigo que está lejos', area:'amigos', target:2, active:true},
+    {id:'cerca',     label:'Compartir con amigos cerca', area:'amigos', target:1, active:true},
+    {id:'naturaleza',label:'Salir a la naturaleza', area:'naturaleza', target:1, active:true},
+    {id:'creativo',  label:'Proyecto creativo', area:'creatividad', target:2, active:true},
+    {id:'perfil',    label:'Perfil profesional: CV, LinkedIn, cursos de IA', area:'crecimiento', target:2, active:true},
+    {id:'apps',      label:'Construir mis apps de Claude', area:'crecimiento', target:2, active:true},
+    {id:'limpiar',   label:'Limpiar la casa', area:'hogar', target:2, active:true},
+    {id:'compra',    label:'Hacer la compra', area:'hogar', target:1, active:true}
+  ],
+  keyDates:[]
+};
+const THREE_PH = ['Lo que haría que hoy valga la pena','Algo de trabajo que mueve la aguja','Algo para ti o para tu familia'];
+const SLEEP_OPTS = [[5,'≤5'],[6,'6'],[6.5,'6½'],[7,'7'],[7.5,'7½'],[8,'8'],[9,'9+']];
+const DOW = ['L','M','X','J','V','S','D'];
+const DOW_LONG = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2,'0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d||1); };
+const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return iso(d); };
+const todayISO = () => iso(new Date());
+const mondayOf = s => { const d = parse(s); d.setDate(d.getDate() - ((d.getDay()+6)%7)); return iso(d); };
+const weekDays = m => Array.from({length:7}, (_,i) => addDays(m,i));
+const monthKey = s => s.slice(0,7);
+const daysInMonth = ym => { const [y,m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); };
+const shiftMonth = (ym,n) => { const [y,m] = ym.split('-').map(Number); const d = new Date(y, m-1+n, 1); return `${d.getFullYear()}-${pad(d.getMonth()+1)}`; };
+const diffDays = (a,b) => Math.round((parse(b) - parse(a)) / 86400000);
+const dow = s => (parse(s).getDay()+6)%7;
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const fmtLong = s => cap(new Intl.DateTimeFormat('es',{weekday:'long',day:'numeric',month:'long'}).format(parse(s)));
+const fmtDM = s => new Intl.DateTimeFormat('es',{day:'numeric',month:'short'}).format(parse(s)).replace('.','');
+const fmtMonth = ym => cap(new Intl.DateTimeFormat('es',{month:'long',year:'numeric'}).format(parse(ym+'-01')));
+const fmtNum = (n,d=0) => n.toLocaleString('es',{maximumFractionDigits:d,minimumFractionDigits:0});
+const fmtMin = m => { if (!m) return '0 min'; const h = Math.floor(m/60), r = m%60; return h ? `${h} h${r ? ' '+r : ''}` : `${r} min`; };
+const fmtSleep = v => v === 9 ? '9+' : v === 5 ? '≤5' : String(v).replace('.5','½');
+const pct = v => `${Math.round(v*100)} %`;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid36 = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const avg = a => a.reduce((s,v)=>s+v,0) / a.length;
+
+let TODAY, MIN_MONDAY, MAX_MONDAY, MIN_MONTH, MAX_MONTH;
+function setToday(){
+  TODAY = todayISO();
+  MIN_MONDAY = addDays(mondayOf(TODAY), -7*26);
+  MAX_MONDAY = addDays(mondayOf(TODAY), 7);
+  MIN_MONTH = shiftMonth(monthKey(TODAY), -9);
+  MAX_MONTH = shiftMonth(monthKey(TODAY), 3);
+}
+setToday();
+const stable = v => Array.isArray(v) ? '[' + v.map(stable).join(',') + ']'
+  : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}'
+  : JSON.stringify(v === undefined ? null : v);
+
+/* ---------- state ---------- */
+const S = {
+  cfg: normCfg(null), weeks:{}, months:{},
+  view:'hoy', day:TODAY, week:mondayOf(TODAY), month:monthKey(TODAY),
+  ready:false, mode:'connecting', confirm:null
+};
+
+function normCfg(c){
+  const d = structuredClone(DEFAULT_CFG);
+  if (!c) return d;
+  const o = Object.assign(d, structuredClone(c));
+  if (!Array.isArray(o.anchors)) o.anchors = structuredClone(DEFAULT_CFG.anchors);
+  if (!Array.isArray(o.rhythms)) o.rhythms = structuredClone(DEFAULT_CFG.rhythms);
+  if (!Array.isArray(o.keyDates)) o.keyDates = [];
+  if (typeof o.sleepTarget !== 'number') o.sleepTarget = 7;
+  if (typeof o.ocioBudgetH !== 'number') o.ocioBudgetH = 6;
+  return o;
+}
+function newDay(){ return {a:{}, three:[{t:'',d:false},{t:'',d:false},{t:'',d:false}], done:[], note:''}; }
+function normWeek(w){
+  w = structuredClone(w || {});
+  w.days = w.days && typeof w.days === 'object' ? w.days : {};
+  for (const k in w.days){
+    const x = Object.assign(newDay(), w.days[k]);
+    if (!Array.isArray(x.three)) x.three = newDay().three;
+    while (x.three.length < 3) x.three.push({t:'',d:false});
+    if (!Array.isArray(x.done)) x.done = [];
+    if (!x.a || typeof x.a !== 'object') x.a = {};
+    w.days[k] = x;
+  }
+  w.rhythms = w.rhythms && typeof w.rhythms === 'object' ? w.rhythms : {};
+  w.plan = Object.assign({focus:['','',''], skip:''}, w.plan || {});
+  if (!Array.isArray(w.plan.focus)) w.plan.focus = ['','',''];
+  while (w.plan.focus.length < 3) w.plan.focus.push('');
+  w.review = Object.assign({emilia:'', worked:'', adjust:''}, w.review || {});
+  return w;
+}
+function normMonth(m){
+  m = structuredClone(m || {});
+  m.done = m.done && typeof m.done === 'object' ? m.done : {};
+  m.review = Object.assign({done:false, note:''}, m.review || {});
+  return m;
+}
+const week = m => S.weeks[m] || (S.weeks[m] = normWeek({start:m}));
+const day = d => { const w = week(mondayOf(d)); return w.days[d] || (w.days[d] = newDay()); };
+const month = k => S.months[k] || (S.months[k] = normMonth({key:k}));
+const activeAnchors = () => S.cfg.anchors.filter(a => a.active);
+const activeRhythms = () => S.cfg.rhythms.filter(r => r.active && r.target > 0);
+
+/* ---------- storage (db capability, private per person) ---------- */
+let db = null, base = null;
+const queue = new Map();      // path -> {timer, get}
+const inflight = new Map();   // path -> promise
+const isBusy = p => queue.has(p) || inflight.has(p);
+
+function schedule(path, get){
+  if (!db) return;
+  const q = queue.get(path); if (q) clearTimeout(q.timer);
+  queue.set(path, {get, timer:setTimeout(() => flush(path), 700)});
+  saveState();
+}
+async function flush(path, retried){
+  if (inflight.has(path)) await inflight.get(path);
+  const q = queue.get(path);
+  if (!q || inflight.has(path)) return;
+  clearTimeout(q.timer); queue.delete(path);
+  const data = q.get();
+  const p = db.doc(path).set(data).catch(e => writeError(e, path, q, retried));
+  inflight.set(path, p); saveState();
+  await p; inflight.delete(path); saveState();
+}
+function flushAll(){ for (const p of [...queue.keys()]) flush(p); }
+function writeError(e, path, q, retried){
+  const code = e && e.code;
+  if (code === 'unavailable' && !retried){
+    setTimeout(() => { if (!queue.has(path)) queue.set(path, {get:q.get, timer:0}); flush(path, true); }, 800 + Math.random()*1200);
+    return;
+  }
+  if (code === 'invalid_argument'){ S.mode = 'readonly'; render(); return; }
+  if (code === 'quota_exceeded'){ toast('El espacio de guardado está lleno. Borra fechas o hábitos que ya no uses.'); return; }
+  if (code === 'revoked' || code === 'not_granted'){ S.mode = 'readonly'; render(); return; }
+  toast('No se pudo guardar este cambio. Vuelve a intentarlo en un momento.');
+}
+// Each getter stamps the local copy too, so the store's echo of our own write compares equal and causes no repaint.
+const stamp = (o, extra) => Object.assign(o, extra, {updatedAt:new Date().toISOString()});
+const saveWeek = m => schedule(`${base}/w-${m}`, () => structuredClone(stamp(S.weeks[m], {kind:'week', start:m})));
+const saveMonth = k => schedule(`${base}/m-${k}`, () => structuredClone(stamp(S.months[k], {kind:'month', key:k})));
+const saveCfg = () => schedule(`${base}/config`, () => structuredClone(stamp(S.cfg, {kind:'config'})));
+
+function saveState(){
+  const el = document.getElementById('savestate');
+  if (!el) return;
+  el.textContent = (queue.size || inflight.size) ? 'Guardando…' : (S.mode === 'ok' ? 'Guardado' : '');
+}
+
+async function connect(){
+  const cl = window.claude;
+  if (!cl || typeof cl.use !== 'function'){ S.mode = 'local'; S.ready = true; render(); return; }
+  let dbNs = null, userNs = null;
+  try { [dbNs, userNs] = await Promise.all([cl.use('db'), cl.use('user')]); } catch { /* treated as absent */ }
+  if (!dbNs || !userNs){ S.mode = 'local'; S.ready = true; render(); return; }
+  const id = await userNs.id();
+  if (!id){ S.mode = 'signedout'; S.ready = true; render(); return; }
+  db = dbNs; base = `data/users/${id}`;
+  subscribe();
+}
+
+function subscribe(){
+  const got = {cfg:false, weeks:false, months:false};
+  const timer = setTimeout(() => { if (!S.ready){ S.mode = 'slow'; render(); } }, 10000);
+  const ready = changed => {
+    if (!S.ready && got.cfg && got.weeks && got.months){ S.ready = true; S.mode = 'ok'; clearTimeout(timer); changed = true; }
+    if (changed) render();
+  };
+  const fail = e => {
+    clearTimeout(timer);
+    if (e && (e.code === 'revoked' || e.code === 'not_granted')){ S.mode = 'readonly'; }
+    else if (!S.ready){ S.mode = 'error'; }
+    else toast('Se perdió la conexión con tu guardado. Recarga la página para volver a conectar.');
+    render();
+  };
+  db.doc(`${base}/config`).onSnapshot(snap => {
+    let changed = false;
+    if (!isBusy(`${base}/config`)){
+      const next = normCfg(snap.exists ? snap.data() : null);
+      if (stable(next) !== stable(S.cfg)){ S.cfg = next; changed = true; }
+    }
+    got.cfg = true; ready(changed);
+  }, fail);
+  const col = db.collection(base);
+  col.where('kind','==','week').orderBy('start','desc').limit(30).onSnapshot(snap => {
+    let changed = false;
+    for (const d of snap.docs){
+      const data = d.data(); if (!data || !data.start) continue;
+      if (isBusy(`${base}/${d.id}`)) continue;
+      const next = normWeek(data);
+      if (!S.weeks[data.start] || stable(next) !== stable(S.weeks[data.start])){ S.weeks[data.start] = next; changed = true; }
+    }
+    got.weeks = true; ready(changed);
+  }, fail);
+  col.where('kind','==','month').orderBy('key','desc').limit(14).onSnapshot(snap => {
+    let changed = false;
+    for (const d of snap.docs){
+      const data = d.data(); if (!data || !data.key) continue;
+      if (isBusy(`${base}/${d.id}`)) continue;
+      const next = normMonth(data);
+      if (!S.months[data.key] || stable(next) !== stable(S.months[data.key])){ S.months[data.key] = next; changed = true; }
+    }
+    got.months = true; ready(changed);
+  }, fail);
+}
+
+const canEdit = () => S.ready && S.mode !== 'readonly';
+
+/* ---------- scoring ---------- */
+function scoreWeek(m){
+  const w = S.weeks[m]; if (!w) return null;
+  const days = weekDays(m).filter(d => d <= TODAY);
+  if (!days.length) return null;
+  const per = {}; let any = false;
+  const add = (a,v) => (per[a] || (per[a] = [])).push(v);
+  for (const a of activeAnchors()){
+    const c = days.filter(d => w.days[d] && w.days[d].a[a.id]).length;
+    add(a.area, c / days.length); if (c) any = true;
+  }
+  for (const r of activeRhythms()){
+    const c = (w.rhythms[r.id] || []).length;
+    add(r.area, Math.min(1, c / r.target)); if (c) any = true;
+  }
+  const sl = days.map(d => w.days[d] && w.days[d].sleep).filter(v => typeof v === 'number');
+  if (sl.length){ add('cuerpo', sl.filter(v => v >= S.cfg.sleepTarget).length / sl.length); any = true; }
+  const oc = days.map(d => w.days[d] && w.days[d].ocio).filter(v => typeof v === 'number');
+  const ocio = oc.reduce((s,v) => s+v, 0);
+  if (oc.length){ const b = S.cfg.ocioBudgetH * 60; add('ocio', ocio <= b ? 1 : b / ocio); any = true; }
+  if (!any) return null;
+  const areas = {}; for (const k in per) areas[k] = avg(per[k]);
+  return {overall: avg(Object.values(areas)), areas, sleepAvg: sl.length ? avg(sl) : null, ocio: oc.length ? ocio : null,
+          complete: addDays(m,6) < TODAY};
+}
+function recentMondays(n){ const cur = mondayOf(TODAY); return Array.from({length:n}, (_,i) => addDays(cur, -7*(n-1-i))); }
+function weekOcio(m){ const w = S.weeks[m]; if (!w) return 0; return weekDays(m).reduce((s,d) => s + ((w.days[d] && w.days[d].ocio) || 0), 0); }
+function weekSleep(m){ const w = S.weeks[m]; if (!w) return []; return weekDays(m).map(d => w.days[d] && w.days[d].sleep).filter(v => typeof v === 'number'); }
+function lifeWeek(b){ if (!b) return null; const n = Math.floor(diffDays(b, TODAY) / 7) + 1; return n > 0 ? n : null; }
+
+/* ---------- key dates ---------- */
+function kdDate(kd, ym){ return `${ym}-${pad(Math.min(kd.day, daysInMonth(ym)))}`; }
+function upcoming(from){
+  const ym = monthKey(from), nx = shiftMonth(ym, 1), out = [];
+  for (const kd of S.cfg.keyDates){
+    for (const k of [ym, nx]){
+      const date = kdDate(kd, k), dd = diffDays(from, date), ok = !!(S.months[k] && S.months[k].done[kd.id]);
+      if ((k === ym && dd < 0 && !ok) || (dd >= 0 && dd <= 10)) out.push({kd, date, dd, k, ok});
+    }
+  }
+  return out.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+}
+const whenText = dd => dd < 0 ? `<span class="late">hace ${-dd} ${-dd === 1 ? 'día' : 'días'}</span>` : dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : `en ${dd} días`;
+const kdLabel = (kd, ok) => kd.kind === 'cobro' ? (ok ? 'Cobrado' : 'Marcar cobrado') : (ok ? 'Pagado' : 'Marcar pagado');
+
+/* ---------- views ---------- */
+function banner(){
+  const m = {
+    local: 'Vista previa sin guardado: abre esta página en claude.ai con tu cuenta para guardar tu progreso. Lo que marques ahora se pierde al cerrar.',
+    signedout: 'Inicia sesión en claude.ai para guardar tu progreso. Lo que marques ahora se pierde al cerrar.',
+    slow: 'Aún no logro conectar con tu guardado. Revisa tu conexión: la página se actualizará sola cuando vuelva.',
+    error: 'No se pudo abrir tu guardado. Recarga la página para intentarlo de nuevo.',
+    readonly: 'Con esta cuenta puedes mirar la página, pero no guardar cambios.'
+  }[S.mode];
+  return m ? `<p class="banner">${m}</p>` : '';
+}
+
+function viewHoy(){
+  const d = S.day, m = mondayOf(d), w = week(m), x = day(d);
+  const principle = PRINCIPLES[(diffDays('2026-01-01', d) % PRINCIPLES.length + PRINCIPLES.length) % PRINCIPLES.length];
+  const focus = w.plan.focus.filter(Boolean);
+  const isSun = dow(d) === 6, isMon = dow(d) === 0;
+  let ritual = '';
+  if (d === TODAY && isSun){
+    ritual = `<div class="ritual"><p><b>Hoy toca el ritual del domingo.</b> Diez minutos: cerrar esta semana y elegir lo importante de la próxima.</p>
+      <div class="row"><button class="pill" data-act="goto-week" data-m="${m}">Cerrar esta semana</button><button class="pill solid" data-act="goto-week" data-m="${addDays(m,7)}">Planear la próxima</button></div></div>`;
+  } else if (d === TODAY && isMon && !focus.length){
+    ritual = `<div class="ritual"><p><b>Empieza la semana.</b> Elige hasta tres cosas que de verdad importan estos siete días.</p>
+      <div class="row"><button class="pill solid" data-act="goto-week" data-m="${m}">Elegir lo importante</button></div></div>`;
+  }
+  const prev = S.weeks[mondayOf(addDays(d,-1))] && S.weeks[mondayOf(addDays(d,-1))].days[addDays(d,-1)];
+  const carry = prev ? prev.three.filter(t => t.t.trim() && !t.d) : [];
+  const freeSlots = x.three.filter(t => !t.t.trim()).length;
+  const anchors = activeAnchors(), rh = activeRhythms();
+
+  const sl = weekSleep(m), ocW = weekOcio(m), budget = S.cfg.ocioBudgetH * 60;
+  const ocPct = budget ? Math.min(100, ocW / budget * 100) : 0;
+  const up = upcoming(d);
+
+  const autoDone = [
+    ...x.three.filter(t => t.d && t.t.trim()).map(t => t.t),
+    ...anchors.filter(a => x.a[a.id]).map(a => a.label),
+    ...rh.filter(r => (w.rhythms[r.id] || []).includes(d)).map(r => r.label)
+  ];
+
+  return `
+  <section class="dayhead">
+    <div class="daynav">
+      <button class="navbtn" data-act="day" data-n="-1" aria-label="Día anterior" ${d <= MIN_MONDAY ? 'disabled' : ''}>‹</button>
+      <h1>${d === TODAY ? 'Hoy, ' + fmtLong(d).toLowerCase() : fmtLong(d)}</h1>
+      <button class="navbtn" data-act="day" data-n="1" aria-label="Día siguiente" ${d >= TODAY ? 'disabled' : ''}>›</button>
+    </div>
+    ${d !== TODAY ? '<button class="linkbtn" data-act="day-today">Volver a hoy</button>' : ''}
+    <p class="principle">${esc(principle)}</p>
+    ${focus.length ? `<p class="weekfocus"><span class="label">Esta semana importa</span>${focus.map(f => `<span class="it">${esc(f)}</span>`).join('')}</p>` : ''}
+  </section>
+  ${ritual}
+
+  <section class="block">
+    <div class="block-h"><h2>Lo importante hoy</h2><span class="hint">Máximo tres. Si entra algo nuevo, algo sale.</span></div>
+    <ul class="three">
+      ${x.three.slice(0,3).map((t,i) => `<li class="${t.d ? 'is-done' : ''}">
+        <button class="check" data-act="three" data-i="${i}" aria-pressed="${!!t.d}" aria-label="Marcar como hecho">✓</button>
+        <label class="sr" for="three-${i}">Prioridad ${i+1}</label>
+        <input id="three-${i}" data-bind="three" data-i="${i}" value="${esc(t.t)}" placeholder="${THREE_PH[i]}" maxlength="120" autocomplete="off">
+      </li>`).join('')}
+    </ul>
+    ${carry.length && freeSlots ? `<button class="linkbtn" data-act="carry">Traer lo que quedó de ayer (${carry.length})</button>` : ''}
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Anclas del día</h2><span class="hint">Lo mínimo que te sostiene. La versión pequeña también cuenta.</span></div>
+    <div class="anchors">
+      ${anchors.map(a => `<button class="anchor" data-act="anchor" data-id="${a.id}" aria-pressed="${!!x.a[a.id]}">
+        <span class="a-label"><span class="tick"></span>${esc(a.label)}</span>${a.hint ? `<span class="a-hint">${esc(a.hint)}</span>` : ''}</button>`).join('')}
+    </div>
+    <div class="pair">
+      <div>
+        <h3>Dormí anoche</h3>
+        <div class="chips">${SLEEP_OPTS.map(([v,l]) => `<button class="chip" data-act="sleep" data-v="${v}" aria-pressed="${x.sleep === v}">${l}</button>`).join('')}</div>
+        <p class="meta">Meta: ${fmtNum(S.cfg.sleepTarget,1)} h${sl.length ? ` · promedio de la semana: ${fmtNum(avg(sl),1)} h` : ''}</p>
+      </div>
+      <div>
+        <h3>Ocio elegido</h3>
+        <div class="stepper">
+          <button data-act="ocio" data-d="-30" aria-label="Quitar 30 minutos" ${!x.ocio ? 'disabled' : ''}>−</button>
+          <output aria-live="polite">${fmtMin(x.ocio || 0)}</output>
+          <button data-act="ocio" data-d="30">+30 min</button>
+        </div>
+        <div class="meter ${ocW > budget ? 'over' : ''}" role="img" aria-label="${fmtMin(ocW)} de ${S.cfg.ocioBudgetH} horas"><span style="width:${ocPct}%"></span></div>
+        <p class="meta">${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h esta semana${ocW > budget ? '. Por encima de lo elegido: es un dato, no una falta.' : ''}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Esta semana</h2><span class="hint">Sin día fijo. Toca lo que hiciste ${d === TODAY ? 'hoy' : 'este día'}; los puntos son la meta semanal.</span></div>
+    <ul class="rhythms">
+      ${rh.map(r => { const arr = w.rhythms[r.id] || [], on = arr.includes(d), n = arr.length;
+        return `<li><button class="rhythm ${n >= r.target ? 'met' : ''}" data-act="rhythm" data-id="${r.id}" data-day="${d}" aria-pressed="${on}">
+          <span class="r-label">${esc(r.label)}<span class="r-area">${AREAS[r.area] || ''}</span></span>
+          <span class="dots" aria-label="${n} de ${r.target}">${dots(n, r.target)}</span></button></li>`; }).join('')}
+    </ul>
+  </section>
+
+  ${up.length ? `<section class="block">
+    <div class="block-h"><h2>Fechas clave</h2><span class="hint">Lo que vence en los próximos diez días.</span></div>
+    <ul class="dates">${up.map(u => dateRow(u)).join('')}</ul>
+  </section>` : (S.cfg.keyDates.length ? '' : `<section class="block"><div class="block-h"><h2>Fechas clave</h2>
+    <span class="hint">Añade una vez la renta, los créditos y los cobros en <a href="#mes">Mes</a>, y aparecerán aquí cuando se acerquen.</span></div></section>`)}
+
+  <section class="block">
+    <div class="block-h"><h2>Hecho ${d === TODAY ? 'hoy' : 'este día'}</h2><span class="hint">Cierra el día con lo que sí hiciste.</span></div>
+    ${autoDone.length || x.done.length ? `<ul class="donelist">
+      ${autoDone.map(t => `<li class="auto">${esc(t)}</li>`).join('')}
+      ${x.done.map((t,i) => `<li>${esc(t)}<button class="x" data-act="done-del" data-i="${i}" aria-label="Quitar">×</button></li>`).join('')}
+    </ul>` : '<p class="empty">Todavía nada anotado. Lo que marques arriba aparece aquí solo.</p>'}
+    <form class="add" data-form="done">
+      <label class="sr" for="done-new">Algo más que hiciste</label>
+      <input id="done-new" placeholder="Algo más que hiciste…" maxlength="140" autocomplete="off">
+      <button class="btn ghost">Añadir</button>
+    </form>
+    <div class="stack">
+      <label for="note">Una línea para recordar</label>
+      <textarea id="note" data-bind="note" rows="2" maxlength="600" placeholder="Algo que dijo Emilia, un momento, una idea…">${esc(x.note)}</textarea>
+    </div>
+  </section>`;
+}
+function dots(n, t){
+  let s = '';
+  for (let i = 0; i < t; i++) s += `<i class="dot ${i < n ? 'on' : ''}"></i>`;
+  if (n > t) s += `<b class="extra">+${n-t}</b>`;
+  return s;
+}
+function dateRow(u){
+  const kd = u.kd;
+  return `<li>
+    <span class="when"><b>${parse(u.date).getDate()}</b><small>${fmtDM(u.date).split(' ')[1] || ''}</small></span>
+    <span class="what"><span class="kind ${kd.kind}">${kd.kind === 'cobro' ? 'Cobro' : 'Pago'}</span>${esc(kd.name)}
+      <small>${whenText(u.dd)}${kd.amount ? ' · ' + esc(kd.amount) : ''}</small></span>
+    <button class="pill" data-act="kd" data-id="${kd.id}" data-k="${u.k}" aria-pressed="${u.ok}">${kdLabel(kd, u.ok)}</button>
+  </li>`;
+}
+
+function viewSemana(){
+  const m = S.week, w = week(m), days = weekDays(m), sc = scoreWeek(m);
+  const sl = weekSleep(m), oc = weekOcio(m), budget = S.cfg.ocioBudgetH * 60;
+  const rh = activeRhythms(), an = activeAnchors();
+  const isNext = m > mondayOf(TODAY), isCur = m === mondayOf(TODAY);
+  const title = `${parse(days[0]).getDate()} ${fmtDM(days[0]).split(' ')[1]} – ${fmtDM(days[6])}`;
+  const row = (label, cells, tot, met) => `<tr><th scope="row">${label}</th>${cells}<td class="tot ${met ? 'met' : ''}">${tot}</td></tr>`;
+  const anchorRows = an.map(a => {
+    const c = days.filter(d => w.days[d] && w.days[d].a[a.id]).length;
+    return row(esc(a.label), days.map(d => `<td><button class="cell" data-act="cell" data-id="${a.id}" data-day="${d}" aria-pressed="${!!(w.days[d] && w.days[d].a[a.id])}" aria-label="${esc(a.label)}, ${DOW_LONG[dow(d)]}" ${d > TODAY ? 'disabled' : ''}></button></td>`).join(''), `${c}/7`, c >= 5);
+  }).join('');
+  const rhythmRows = rh.map(r => {
+    const arr = w.rhythms[r.id] || [];
+    return row(esc(r.label), days.map(d => `<td><button class="cell" data-act="rhythm" data-id="${r.id}" data-day="${d}" aria-pressed="${arr.includes(d)}" aria-label="${esc(r.label)}, ${DOW_LONG[dow(d)]}" ${d > TODAY ? 'disabled' : ''}></button></td>`).join(''), `${arr.length}/${r.target}`, arr.length >= r.target);
+  }).join('');
+  const sleepRow = row('Sueño (h)', days.map(d => `<td class="val">${w.days[d] && typeof w.days[d].sleep === 'number' ? fmtSleep(w.days[d].sleep) : '·'}</td>`).join(''), sl.length ? fmtNum(avg(sl),1) : '–', sl.length && avg(sl) >= S.cfg.sleepTarget);
+  const ocioRow = row('Ocio (min)', days.map(d => `<td class="val">${w.days[d] && w.days[d].ocio ? w.days[d].ocio : '·'}</td>`).join(''), fmtMin(oc), oc && oc <= budget);
+
+  return `
+  <section class="dayhead">
+    <div class="weeknav">
+      <button class="navbtn" data-act="week" data-n="-1" aria-label="Semana anterior" ${m <= MIN_MONDAY ? 'disabled' : ''}>‹</button>
+      <h1>${isNext ? 'Próxima semana' : isCur ? 'Esta semana' : 'Semana'}<br><span class="hint" style="font-family:var(--body);font-size:16px">${title}</span></h1>
+      <button class="navbtn" data-act="week" data-n="1" aria-label="Semana siguiente" ${m >= MAX_MONDAY ? 'disabled' : ''}>›</button>
+    </div>
+    ${!isCur ? '<button class="linkbtn" data-act="week-now">Ir a esta semana</button>' : ''}
+    ${!isNext ? `<div class="stats">
+      <div class="stat"><b>${sc ? pct(sc.overall) : '–'}</b><span>balance${sc && !sc.complete ? ' (en curso)' : ''}</span></div>
+      <div class="stat"><b>${sl.length ? fmtNum(avg(sl),1) + ' h' : '–'}</b><span>sueño promedio</span></div>
+      <div class="stat"><b>${fmtMin(oc)}</b><span>ocio de ${fmtNum(S.cfg.ocioBudgetH,1)} h elegidas</span></div>
+    </div>` : ''}
+  </section>
+
+  <section class="block planbox">
+    <div class="block-h"><h2>Lo importante de la semana</h2><span class="hint">Hasta tres. Aparecen arriba en Hoy para que no se pierdan.</span></div>
+    <div class="plan3">${[0,1,2].map(i => `<label class="sr" for="pf-${i}">Importante ${i+1}</label><input type="text" id="pf-${i}" data-bind="plan" data-i="${i}" value="${esc(w.plan.focus[i])}" maxlength="80" placeholder="${['Ej.: presentar la propuesta del cliente','Ej.: una tarde entera en la naturaleza con Emilia','Ej.: publicar la primera versión de mi app'][i]}">`).join('')}</div>
+    <div class="stack">
+      <label for="pskip">Esta semana dejo ir, a propósito</label>
+      <input type="text" id="pskip" data-bind="skip" value="${esc(w.plan.skip)}" maxlength="120" placeholder="Ej.: ordenar el garaje, el curso nuevo, responder todo al instante">
+      <span class="hint">Elegir de antemano en qué quedarte corto es una decisión, no un fracaso.</span>
+    </div>
+  </section>
+
+  ${!isNext ? `<section class="block">
+    <div class="block-h"><h2>La semana de un vistazo</h2><span class="hint">Toca una casilla para marcar o desmarcar ese día.</span></div>
+    <div class="scroll"><table class="matrix">
+      <thead><tr><th scope="col"><span class="sr">Hábito</span></th>${days.map(d => `<th scope="col" class="${d === TODAY ? 'is-today' : ''}">${DOW[dow(d)]}<small>${parse(d).getDate()}</small></th>`).join('')}<th scope="col">Total</th></tr></thead>
+      <tbody>
+        <tr class="grp"><th colspan="9">Anclas diarias</th></tr>${anchorRows}${sleepRow}${ocioRow}
+        <tr class="grp"><th colspan="9">Ritmos semanales</th></tr>${rhythmRows}
+      </tbody>
+    </table></div>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Cierre de semana</h2><span class="hint">Cinco minutos el domingo. Nadie lo califica.</span></div>
+    <div class="stack"><label for="rev-emilia">Un momento con Emilia que quiero recordar</label><textarea id="rev-emilia" data-bind="review" data-k="emilia" maxlength="600">${esc(w.review.emilia)}</textarea></div>
+    <div class="stack"><label for="rev-worked">Qué funcionó</label><textarea id="rev-worked" data-bind="review" data-k="worked" maxlength="600">${esc(w.review.worked)}</textarea></div>
+    <div class="stack"><label for="rev-adjust">Qué ajusto para la próxima</label><textarea id="rev-adjust" data-bind="review" data-k="adjust" maxlength="600">${esc(w.review.adjust)}</textarea></div>
+  </section>` : ''}`;
+}
+
+function viewMes(){
+  const k = S.month, mo = month(k), n = daysInMonth(k), first = dow(`${k}-01`);
+  const kds = S.cfg.keyDates.slice().sort((a,b) => a.day - b.day);
+  const byDay = {};
+  for (const kd of kds){ const dd = parse(kdDate(kd, k)).getDate(); (byDay[dd] || (byDay[dd] = [])).push(kd); }
+  let cells = DOW.map(x => `<div class="dow">${x}</div>`).join('');
+  for (let i = 0; i < first; i++) cells += '<div class="c blank"></div>';
+  for (let dd = 1; dd <= n; dd++){
+    const ds = `${k}-${pad(dd)}`, list = byDay[dd] || [];
+    cells += `<div class="c ${ds === TODAY ? 'today' : ''}" ${list.length ? `title="${esc(list.map(x => x.name).join(', '))}"` : ''}><span>${dd}</span><span class="marks">${list.map(x => `<i class="m ${x.kind} ${mo.done[x.id] ? 'ok' : ''}"></i>`).join('')}</span></div>`;
+  }
+  const rows = kds.map(kd => {
+    const date = kdDate(kd, k), ok = !!mo.done[kd.id], dd = diffDays(TODAY, date);
+    const conf = S.confirm === 'kd:' + kd.id;
+    return `<li>
+      <span class="when"><b>${parse(date).getDate()}</b><small>${DOW_LONG[dow(date)].slice(0,3)}</small></span>
+      <span class="what"><span class="kind ${kd.kind}">${kd.kind === 'cobro' ? 'Cobro' : 'Pago'}</span>${esc(kd.name)}
+        <small>${k === monthKey(TODAY) && !ok ? whenText(dd) : ''}${kd.amount ? (k === monthKey(TODAY) && !ok ? ' · ' : '') + esc(kd.amount) : ''}</small></span>
+      ${conf ? `<button class="pill danger" data-act="kd-del-yes" data-id="${kd.id}">Eliminar</button><button class="pill" data-act="confirm-no">Cancelar</button>`
+             : `<button class="pill" data-act="kd" data-id="${kd.id}" data-k="${k}" aria-pressed="${ok}">${kdLabel(kd, ok)}</button>
+                <button class="x pill" data-act="kd-del" data-id="${kd.id}" aria-label="Eliminar ${esc(kd.name)}">×</button>`}
+    </li>`;
+  }).join('');
+  const pagos = kds.filter(x => x.kind !== 'cobro'), cobros = kds.filter(x => x.kind === 'cobro');
+  return `
+  <section class="dayhead">
+    <div class="weeknav">
+      <button class="navbtn" data-act="month" data-n="-1" aria-label="Mes anterior" ${k <= MIN_MONTH ? 'disabled' : ''}>‹</button>
+      <h1>${fmtMonth(k)}</h1>
+      <button class="navbtn" data-act="month" data-n="1" aria-label="Mes siguiente" ${k >= MAX_MONTH ? 'disabled' : ''}>›</button>
+    </div>
+    ${kds.length ? `<p class="hint">${pagos.filter(x => mo.done[x.id]).length} de ${pagos.length} pagos hechos · ${cobros.filter(x => mo.done[x.id]).length} de ${cobros.length} cobros recibidos</p>` : ''}
+  </section>
+
+  <section class="block">
+    <div class="cal" role="img" aria-label="Calendario de ${fmtMonth(k)} con fechas clave">${cells}</div>
+    <div class="legend"><span><i style="border:1.5px solid var(--ember)"></i>Pago</span><span><i style="border:1.5px solid var(--lake)"></i>Cobro</span><span><i style="background:var(--muted)"></i>Relleno = hecho</span></div>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Fechas clave del mes</h2><span class="hint">Se repiten cada mes. Márcalas cuando estén hechas.</span></div>
+    ${kds.length ? `<ul class="dates">${rows}</ul>` : '<p class="empty">Aún no hay fechas clave. Empieza por la renta (lo que pagas y lo que cobras), los créditos y las tarjetas.</p>'}
+    <form class="kdform" data-form="kd">
+      <div class="stack wide"><label for="kd-name">Nombre</label><input type="text" id="kd-name" maxlength="60" placeholder="Ej.: Renta del departamento" required></div>
+      <div class="stack"><label for="kd-day">Día del mes</label><input type="number" id="kd-day" min="1" max="31" inputmode="numeric" placeholder="5" required></div>
+      <div class="stack"><label for="kd-kind">Tipo</label><select id="kd-kind"><option value="pago">Pago</option><option value="cobro">Cobro</option></select></div>
+      <div class="stack full"><label for="kd-amount">Monto o nota (opcional)</label><input type="text" id="kd-amount" maxlength="60" placeholder="Ej.: $850 · transferencia"></div>
+      <div class="full"><button class="btn">Añadir fecha</button></div>
+    </form>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Revisión de finanzas</h2><span class="hint">Una vez al mes: qué entró, qué salió, qué viene.</span></div>
+    <label class="checkrow" for="mrev"><input type="checkbox" id="mrev" data-bind="mrev" ${mo.review.done ? 'checked' : ''}> Revisé mis finanzas de ${fmtMonth(k).split(' ')[0].toLowerCase()}</label>
+    <div class="stack"><label for="mnote">Notas del mes</label><textarea id="mnote" data-bind="mnote" maxlength="1000" placeholder="Ej.: subió la luz; adelantar el pago del crédito en diciembre">${esc(mo.review.note)}</textarea></div>
+  </section>`;
+}
+
+function viewTendencia(){
+  const yr = TODAY.slice(0,4);
+  const cur = mondayOf(TODAY);
+  let mons = []; let mm = mondayOf(`${yr}-01-01`); if (mm < `${yr}-01-01`) mm = addDays(mm, 7);
+  for (; mm.slice(0,4) === yr; mm = addDays(mm, 7)) mons.push(mm);
+  const done = mons.filter(x => x <= cur).length;
+  const lw = lifeWeek(S.cfg.birth), ew = lifeWeek(S.cfg.emiliaBirth);
+  const heatColor = v => `color-mix(in oklab, var(--lake) ${Math.round(15 + v*85)}%, var(--cell))`;
+  const yearCells = mons.map(x => {
+    if (x > cur) return `<span class="wk future" aria-hidden="true"></span>`;
+    const s = scoreWeek(x), lbl = `Semana del ${fmtDM(x)}: ${s ? pct(s.overall) : 'sin registro'}`;
+    return `<button class="wk ${x === cur ? 'now' : ''} ${s ? '' : 'none'}" ${s ? `style="background:${heatColor(s.overall)}"` : ''} data-act="goto-week" data-m="${x}" title="${lbl}" aria-label="${lbl}" ${x < MIN_MONDAY ? 'disabled' : ''}></button>`;
+  }).join('');
+
+  const ms = recentMondays(12);
+  const pts = ms.map(x => ({m:x, s:scoreWeek(x)}));
+  const hasData = pts.some(p => p.s);
+  const complete = pts.filter(p => p.s && p.s.complete);
+  let line;
+  if (complete.length < 2) line = 'Con dos o tres semanas registradas empieza a dibujarse la línea. No hace falta llenar todo: con lo que marques basta.';
+  else {
+    const last = complete.slice(-3), prev = complete.slice(-6, -3);
+    const a = avg(last.map(p => p.s.overall));
+    if (!prev.length) line = `Tus últimas semanas promedian ${pct(a)}. Pronto habrá con qué comparar.`;
+    else {
+      const b = avg(prev.map(p => p.s.overall)), dlt = a - b;
+      line = dlt > 0.05 ? `Va hacia arriba: tus últimas semanas promedian ${pct(a)}, frente a ${pct(b)} antes.`
+           : dlt < -0.05 ? `Bajó un poco: ${pct(a)} frente a ${pct(b)}. Es información, no un veredicto. ¿Qué ancla cuidarías primero?`
+           : `Estable alrededor de ${pct(a)}. La constancia también es tendencia.`;
+    }
+    const agg = {};
+    for (const p of last) for (const k in p.s.areas) (agg[k] || (agg[k] = [])).push(p.s.areas[k]);
+    const ranked = Object.entries(agg).map(([k,v]) => [k, avg(v)]).sort((x,y) => y[1] - x[1]);
+    if (ranked.length >= 2) line += ` Lo que más se sostiene: <b>${AREAS[ranked[0][0]]}</b>. Lo que pide un poco de cariño: <b>${AREAS[ranked[ranked.length-1][0]]}</b>.`;
+  }
+
+  const hm = recentMondays(8), areaKeys = Object.keys(AREAS).filter(k => hm.some(x => { const s = scoreWeek(x); return s && k in s.areas; }) || activeAnchors().some(a => a.area === k) || activeRhythms().some(r => r.area === k));
+  const heat = `<div class="heat" style="grid-template-columns:minmax(96px,150px) repeat(${hm.length},minmax(28px,1fr))">
+    <span></span>${hm.map(x => `<span class="hh">${fmtDM(x)}</span>`).join('')}
+    ${areaKeys.map(k => `<span class="hl">${AREAS[k]}</span>${hm.map(x => { const s = scoreWeek(x), v = s && s.areas[k];
+      return typeof v === 'number' ? `<span class="hc" style="background:${heatColor(v)}" title="${AREAS[k]}, semana del ${fmtDM(x)}: ${pct(v)}"></span>` : `<span class="hc na" title="Sin registro"></span>`; }).join('')}`).join('')}
+  </div>`;
+
+  const tableRows = ms.slice().reverse().filter(x => S.weeks[x]).map(x => {
+    const s = scoreWeek(x), sl = weekSleep(x), oc = weekOcio(x);
+    return `<tr><td>${fmtDM(x)}${x === cur ? ' (en curso)' : ''}</td><td>${s ? pct(s.overall) : '–'}</td><td>${sl.length ? fmtNum(avg(sl),1) + ' h' : '–'}</td><td>${oc ? fmtMin(oc) : '–'}</td></tr>`;
+  }).join('');
+
+  return `
+  <section class="year">
+    <div class="block-h"><h2>${yr} en semanas</h2><span class="hint">Cada cuadro es una semana. Llevas ${done} de ${mons.length}; más intenso, más equilibrio.</span></div>
+    <div class="yeargrid">${yearCells}</div>
+    ${lw ? `<div class="lifeline"><span class="meta">Semana ${fmtNum(lw)} de unas 4000${ew ? ` · Emilia: semana ${fmtNum(ew)}` : ''}</span><div class="bar"><span style="width:${Math.min(100, lw/40)}%"></span></div></div>`
+         : `<p class="hint">Añade tu fecha de nacimiento en <a href="#ajustes">Ajustes</a> para ver en qué semana de tu vida estás.</p>`}
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Balance semanal</h2><span class="hint">Últimas 12 semanas. El punto hueco es la semana en curso.</span></div>
+    ${hasData ? spark(pts) : '<p class="empty">Aquí aparecerá tu línea cuando marques tus primeros días.</p>'}
+    <p class="trendline">${line}</p>
+  </section>
+
+  ${hasData ? `<section class="block">
+    <div class="block-h"><h2>Por área</h2><span class="hint">Últimas 8 semanas. Una semana floja en un área no borra las demás.</span></div>
+    <div class="scroll">${heat}</div>
+    <div class="scale"><span>menos</span>${[0,.33,.66,1].map(v => `<i style="background:${heatColor(v)}"></i>`).join('')}<span>más</span><span style="margin-left:12px"><i class="hc na" style="display:inline-block;width:18px;height:12px;border:1px dashed var(--line)"></i> sin registro</span></div>
+  </section>
+  <section class="block">
+    <div class="block-h"><h2>Semana por semana</h2></div>
+    <div class="scroll"><table class="weeks"><thead><tr><th>Semana del</th><th>Balance</th><th>Sueño</th><th>Ocio</th></tr></thead><tbody>${tableRows}</tbody></table></div>
+  </section>` : ''}`;
+}
+function spark(pts){
+  const W = 640, H = 170, L = 44, R = 14, T = 12, B = 28, n = pts.length;
+  const x = i => L + i * (W - L - R) / (n - 1), y = v => T + (1 - v) * (H - T - B);
+  let g = '';
+  for (const v of [0, .5, 1]) g += `<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text class="ax" x="${L-8}" y="${y(v)+4}" text-anchor="end">${Math.round(v*100)} %</text>`;
+  for (const i of [0, Math.floor((n-1)/2), n-1]) g += `<text class="ax" x="${x(i)}" y="${H-8}" text-anchor="${i === 0 ? 'start' : i === n-1 ? 'end' : 'middle'}">${fmtDM(pts[i].m)}</text>`;
+  const segs = []; let curSeg = [];
+  pts.forEach((p,i) => { if (p.s) curSeg.push([x(i), y(p.s.overall)]); else if (curSeg.length){ segs.push(curSeg); curSeg = []; } });
+  if (curSeg.length) segs.push(curSeg);
+  let paths = '';
+  for (const s of segs){
+    const d = s.map((p,i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    if (s.length > 1) paths += `<path class="ar" d="${d} L${s[s.length-1][0].toFixed(1)},${y(0)} L${s[0][0].toFixed(1)},${y(0)} Z"/><path class="ln" d="${d}"/>`;
+  }
+  const dotsSvg = pts.map((p,i) => p.s ? `<circle class="pt ${p.s.complete ? '' : 'open'}" cx="${x(i)}" cy="${y(p.s.overall)}" r="${i === n-1 ? 5 : 3.5}"><title>Semana del ${fmtDM(p.m)}: ${pct(p.s.overall)}</title></circle>` : '').join('');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance semanal de las últimas 12 semanas">${g}${paths}${dotsSvg}</svg>`;
+}
+
+function viewAjustes(){
+  const c = S.cfg, areaOpts = sel => Object.entries(AREAS).filter(([k]) => k !== 'ocio').map(([k,v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${v}</option>`).join('');
+  const isDefault = (list, id) => DEFAULT_CFG[list].some(x => x.id === id);
+  const delBtn = (list, id, label) => isDefault(list, id) ? '' : (S.confirm === `${list}:${id}`
+      ? `<button class="pill danger" data-act="cfg-del-yes" data-list="${list}" data-id="${id}">Eliminar</button><button class="pill" data-act="confirm-no">Cancelar</button>`
+      : `<button class="pill" data-act="cfg-del" data-list="${list}" data-id="${id}" aria-label="Eliminar ${esc(label)}">×</button>`);
+  return `
+  <section class="block">
+    <div class="block-h"><h2>Tus semanas</h2><span class="hint">Para contar en qué semana de la vida estás. Unas 4000 semanas son unos 77 años.</span></div>
+    <div class="grid2">
+      <div class="stack"><label for="cfg-birth">Tu fecha de nacimiento</label><input type="date" id="cfg-birth" data-bind="cfg" data-k="birth" value="${esc(c.birth)}" max="${TODAY}"></div>
+      <div class="stack"><label for="cfg-emilia">Fecha de nacimiento de Emilia</label><input type="date" id="cfg-emilia" data-bind="cfg" data-k="emiliaBirth" value="${esc(c.emiliaBirth)}" max="${TODAY}"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Medidas</h2><span class="hint">Metas amables. Se pueden mover cuando la vida cambia.</span></div>
+    <div class="grid2">
+      <div class="stack"><label for="cfg-sleep">Horas de sueño que buscas</label><input type="number" id="cfg-sleep" data-bind="cfg-num" data-k="sleepTarget" min="5" max="10" step="0.5" value="${c.sleepTarget}"></div>
+      <div class="stack"><label for="cfg-ocio">Ocio elegido por semana (horas)</label><input type="number" id="cfg-ocio" data-bind="cfg-num" data-k="ocioBudgetH" min="0" max="40" step="0.5" value="${c.ocioBudgetH}"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Anclas del día</h2><span class="hint">Pocas y pequeñas. Desactiva las que no te sirvan en esta etapa.</span></div>
+    <ul class="setlist">${c.anchors.map(a => `<li>
+      <input type="checkbox" id="an-on-${a.id}" data-bind="an-on" data-id="${a.id}" ${a.active ? 'checked' : ''} aria-label="Activa">
+      <label class="sr" for="an-l-${a.id}">Nombre</label><input type="text" id="an-l-${a.id}" data-bind="an-label" data-id="${a.id}" value="${esc(a.label)}" maxlength="40">
+      ${delBtn('anchors', a.id, a.label)}</li>`).join('')}</ul>
+    <form class="add" data-form="anchor"><label class="sr" for="an-new">Nueva ancla</label><input id="an-new" placeholder="Nueva ancla, ej.: Tomar agua al despertar" maxlength="40" autocomplete="off"><button class="btn ghost">Añadir</button></form>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Ritmos semanales</h2><span class="hint">Veces por semana, sin día fijo. Pon en pausa lo que hoy no cabe: también es una elección.</span></div>
+    <ul class="setlist">${c.rhythms.map(r => `<li>
+      <input type="checkbox" id="rh-on-${r.id}" data-bind="rh-on" data-id="${r.id}" ${r.active ? 'checked' : ''} aria-label="Activo">
+      <label class="sr" for="rh-l-${r.id}">Nombre</label><input type="text" id="rh-l-${r.id}" data-bind="rh-label" data-id="${r.id}" value="${esc(r.label)}" maxlength="60">
+      <label class="sr" for="rh-a-${r.id}">Área</label><select id="rh-a-${r.id}" data-bind="rh-area" data-id="${r.id}">${areaOpts(r.area)}</select>
+      <span class="tgt"><button data-act="tgt" data-id="${r.id}" data-n="-1" aria-label="Menos veces">−</button><span>${r.target}×</span><button data-act="tgt" data-id="${r.id}" data-n="1" aria-label="Más veces">+</button></span>
+      ${delBtn('rhythms', r.id, r.label)}</li>`).join('')}</ul>
+    <form class="add" data-form="rhythm"><label class="sr" for="rh-new">Nuevo ritmo</label><input id="rh-new" placeholder="Nuevo ritmo, ej.: Cocinar algo nuevo" maxlength="60" autocomplete="off"><button class="btn ghost">Añadir</button></form>
+  </section>
+
+  <section class="block prose">
+    <div class="block-h"><h2>Cómo está pensada</h2></div>
+    <p>Cada día empieza en limpio: lo que no hiciste no se acumula. Si algo de ayer sigue importando, lo traes a propósito.</p>
+    <p>El balance de una semana es el promedio de tus áreas. Una semana sin registro queda en blanco, no en cero.</p>
+    <p>Tus datos son privados: se guardan con tu cuenta y nadie más los ve en esta página, aunque la compartas.</p>
+  </section>`;
+}
+
+const VIEWS = {hoy:viewHoy, semana:viewSemana, mes:viewMes, tendencia:viewTendencia, ajustes:viewAjustes};
+
+/* ---------- render ---------- */
+function render(){
+  const ae = document.activeElement, fid = ae && ae.id;
+  let ss = null, se = null; try { ss = ae.selectionStart; se = ae.selectionEnd; } catch {}
+  const lw = lifeWeek(S.cfg.birth), ew = lifeWeek(S.cfg.emiliaBirth);
+  document.getElementById('lifeweeks').innerHTML =
+    `${lw ? `Semana ${fmtNum(lw)} de ~4000` : ''}${lw && ew ? ' · ' : ''}${ew ? `Emilia: semana ${fmtNum(ew)}` : ''}${lw || ew ? ' · ' : ''}<span class="save" id="savestate"></span>`;
+  document.querySelectorAll('.tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.v === S.view ? 'page' : 'false'));
+  const v = document.getElementById('view');
+  v.innerHTML = `${S.mode === 'connecting' ? '<p class="status">Abriendo tus semanas…</p>' : banner()}<fieldset class="lock" ${canEdit() ? '' : 'disabled'}>${VIEWS[S.view]()}</fieldset>`;
+  saveState();
+  if (fid){
+    const el = document.getElementById(fid);
+    if (el && el !== document.activeElement){ el.focus({preventScroll:true}); try { if (ss != null) el.setSelectionRange(ss, se); } catch {} }
+  }
+}
+let toastT = 0;
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 4200); }
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+  const a = b.dataset.act, id = b.dataset.id;
+  const nav = ['day','day-today','week','week-now','month','goto-week','confirm-no'];
+  if (!canEdit() && !nav.includes(a)) return;
+  switch (a){
+    case 'day': { const n = addDays(S.day, +b.dataset.n); if (n <= TODAY && n >= MIN_MONDAY) S.day = n; break; }
+    case 'day-today': S.day = TODAY; break;
+    case 'week': { const n = addDays(S.week, 7 * b.dataset.n); if (n >= MIN_MONDAY && n <= MAX_MONDAY) S.week = n; break; }
+    case 'week-now': S.week = mondayOf(TODAY); break;
+    case 'month': { const n = shiftMonth(S.month, +b.dataset.n); if (n >= MIN_MONTH && n <= MAX_MONTH) S.month = n; break; }
+    case 'goto-week': S.week = b.dataset.m; if (location.hash !== '#semana'){ location.hash = 'semana'; return; } window.scrollTo(0,0); break;
+    case 'three': { const t = day(S.day).three[+b.dataset.i]; t.d = !t.d; saveWeek(mondayOf(S.day)); break; }
+    case 'carry': {
+      const pd = addDays(S.day, -1), prev = week(mondayOf(pd)).days[pd]; if (!prev) break;
+      const x = day(S.day), items = prev.three.filter(t => t.t.trim() && !t.d).map(t => t.t);
+      for (const slot of x.three){ if (!items.length) break; if (!slot.t.trim()){ slot.t = items.shift(); slot.d = false; } }
+      saveWeek(mondayOf(S.day)); break;
+    }
+    case 'anchor': { const x = day(S.day); x.a[id] = !x.a[id]; saveWeek(mondayOf(S.day)); break; }
+    case 'cell': { const d = b.dataset.day; if (d > TODAY) break; const x = day(d); x.a[id] = !x.a[id]; saveWeek(mondayOf(d)); break; }
+    case 'sleep': { const x = day(S.day), v = +b.dataset.v; x.sleep = x.sleep === v ? null : v; saveWeek(mondayOf(S.day)); break; }
+    case 'ocio': { const x = day(S.day); x.ocio = Math.max(0, (x.ocio || 0) + (+b.dataset.d)); saveWeek(mondayOf(S.day)); break; }
+    case 'rhythm': {
+      const d = b.dataset.day; if (d > TODAY) break;
+      const w = week(mondayOf(d)), arr = w.rhythms[id] ? w.rhythms[id].slice() : [], i = arr.indexOf(d);
+      if (i >= 0) arr.splice(i, 1); else arr.push(d);
+      w.rhythms[id] = arr.sort(); saveWeek(mondayOf(d)); break;
+    }
+    case 'done-del': { day(S.day).done.splice(+b.dataset.i, 1); saveWeek(mondayOf(S.day)); break; }
+    case 'kd': { const k = b.dataset.k, mo = month(k); mo.done[id] = !mo.done[id]; saveMonth(k); break; }
+    case 'kd-del': S.confirm = 'kd:' + id; break;
+    case 'kd-del-yes': S.cfg.keyDates = S.cfg.keyDates.filter(x => x.id !== id); S.confirm = null; saveCfg(); break;
+    case 'confirm-no': S.confirm = null; break;
+    case 'tgt': { const r = S.cfg.rhythms.find(x => x.id === id); if (r){ r.target = Math.max(1, Math.min(7, r.target + (+b.dataset.n))); saveCfg(); } break; }
+    case 'cfg-del': S.confirm = `${b.dataset.list}:${id}`; break;
+    case 'cfg-del-yes': { const l = b.dataset.list; S.cfg[l] = S.cfg[l].filter(x => x.id !== id); S.confirm = null; saveCfg(); break; }
+    default: return;
+  }
+  render();
+});
+
+document.addEventListener('input', e => {
+  const el = e.target, k = el.dataset && el.dataset.bind; if (!k || !canEdit()) return;
+  switch (k){
+    case 'three': day(S.day).three[+el.dataset.i].t = el.value; saveWeek(mondayOf(S.day)); break;
+    case 'note': day(S.day).note = el.value; saveWeek(mondayOf(S.day)); break;
+    case 'plan': week(S.week).plan.focus[+el.dataset.i] = el.value; saveWeek(S.week); break;
+    case 'skip': week(S.week).plan.skip = el.value; saveWeek(S.week); break;
+    case 'review': week(S.week).review[el.dataset.k] = el.value; saveWeek(S.week); break;
+    case 'mnote': month(S.month).review.note = el.value; saveMonth(S.month); break;
+    case 'an-label': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a && el.value.trim()){ a.label = el.value; saveCfg(); } break; }
+    case 'rh-label': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r && el.value.trim()){ r.label = el.value; saveCfg(); } break; }
+  }
+});
+
+document.addEventListener('change', e => {
+  const el = e.target, k = el.dataset && el.dataset.bind; if (!k || !canEdit()) return;
+  switch (k){
+    case 'mrev': month(S.month).review.done = el.checked; saveMonth(S.month); break;
+    case 'cfg': S.cfg[el.dataset.k] = el.value; saveCfg(); break;
+    case 'cfg-num': { const v = parseFloat(el.value); if (!isNaN(v)){ S.cfg[el.dataset.k] = Math.max(+el.min, Math.min(+el.max, v)); saveCfg(); } break; }
+    case 'an-on': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a){ a.active = el.checked; saveCfg(); } break; }
+    case 'rh-on': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r){ r.active = el.checked; saveCfg(); } break; }
+    case 'rh-area': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r){ r.area = el.value; saveCfg(); } break; }
+    default: return;
+  }
+  render();
+});
+
+document.addEventListener('submit', e => {
+  const f = e.target.closest('form[data-form]'); if (!f) return;
+  e.preventDefault(); if (!canEdit()) return;
+  const t = f.dataset.form;
+  if (t === 'done'){
+    const i = document.getElementById('done-new'), v = i.value.trim(); if (!v) return;
+    day(S.day).done.push(v); i.value = ''; saveWeek(mondayOf(S.day));
+  } else if (t === 'kd'){
+    const name = document.getElementById('kd-name').value.trim(), dd = parseInt(document.getElementById('kd-day').value, 10);
+    if (!name || !(dd >= 1 && dd <= 31)){ toast('Escribe un nombre y un día del mes entre 1 y 31.'); return; }
+    S.cfg.keyDates.push({id:uid36(), name, day:dd, kind:document.getElementById('kd-kind').value, amount:document.getElementById('kd-amount').value.trim()});
+    saveCfg(); toast('Fecha añadida. Se repetirá cada mes.');
+  } else if (t === 'anchor'){
+    const i = document.getElementById('an-new'), v = i.value.trim(); if (!v) return;
+    S.cfg.anchors.push({id:uid36(), label:v, hint:'', area:'mente', active:true}); saveCfg();
+  } else if (t === 'rhythm'){
+    const i = document.getElementById('rh-new'), v = i.value.trim(); if (!v) return;
+    S.cfg.rhythms.push({id:uid36(), label:v, area:'crecimiento', target:1, active:true}); saveCfg();
+  }
+  render();
+});
+
+function route(){
+  const h = location.hash.slice(1);
+  S.view = VIEWS[h] ? h : 'hoy';
+  S.confirm = null;
+  render(); window.scrollTo(0,0);
+}
+window.addEventListener('hashchange', route);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden'){ flushAll(); return; }
+  const prev = TODAY; setToday();
+  if (prev !== TODAY){
+    if (S.day === prev) S.day = TODAY;
+    if (S.week === mondayOf(prev)) S.week = mondayOf(TODAY);
+    if (S.month === monthKey(prev)) S.month = monthKey(TODAY);
+    render();
+  }
+});
+window.addEventListener('pagehide', flushAll);
+
+route();
+connect();
+})();
+</script>
