@@ -27,7 +27,7 @@ Todo se puede ajustar en **Ajustes**: activar o pausar, renombrar, cambiar metas
 
 ### Secciones
 
-- **Hoy**: las tres prioridades, las anclas, sueño y ocio, los ritmos de la semana, fechas próximas, lo hecho y una línea para recordar.
+- **Hoy**: la agenda del día desde Google Calendar, las tres prioridades, las anclas, sueño y ocio, los ritmos de la semana, fechas próximas, lo hecho y una línea para recordar.
 - **Semana**: lo importante de la semana, lo que dejas ir, la cuadrícula de los siete días y el cierre del domingo.
 - **Mes**: calendario con pagos y cobros, y la revisión de finanzas.
 - **Tendencia**: el año en semanas, la línea de balance de las últimas 12 semanas y el mapa por área.
@@ -43,8 +43,9 @@ Todo se puede ajustar en **Ajustes**: activar o pausar, renombrar, cambiar metas
 ## Detalles técnicos
 
 - Un solo archivo HTML (`semanas-contadas.html`), sin dependencias más allá de dos fuentes de Google Fonts.
-- Se publica como Artifact de claude.ai con las capacidades `db` y `user`. Los datos viven en `data/users/<tu id>/`, privado por persona:
+- Se publica como Artifact de claude.ai con las capacidades `db`, `user` y `mcp`. Los datos viven en `data/users/<tu id>/`, privado por persona:
   - `config`: anclas, ritmos, fechas clave y metas.
   - `w-AAAA-MM-DD`: un documento por semana (clave = lunes), con los días, los ritmos, el plan y el cierre.
   - `m-AAAA-MM`: un documento por mes con pagos y cobros marcados y la revisión de finanzas.
-- Abierta fuera de claude.ai, la página funciona en modo de vista previa (sin guardar).
+- La agenda usa la capacidad `mcp` con el conector **Google Calendar**, solo con la herramienta de lectura `list_events`. La página nunca crea ni modifica eventos. La primera vez, claude.ai pide permiso para que la página lea el calendario; se puede revocar desde el menú Permisos de la página.
+- Abierta fuera de claude.ai, la página funciona en modo de vista previa (sin guardar y sin agenda).

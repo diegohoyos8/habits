@@ -113,6 +113,19 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .meter span{display:block;height:100%;background:var(--lake);border-radius:999px}
 .meter.over span{background:var(--ember)}
 
+/* agenda */
+.agenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.agenda li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
+.agenda li:last-child{border-bottom:1px solid var(--line)}
+.agenda .ev-t{flex:0 0 104px;font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted)}
+.agenda .ev-s{flex:1;min-width:0;overflow-wrap:anywhere}
+.agenda .ev-s a{color:inherit;text-decoration:none}
+.agenda .ev-s a:hover{text-decoration:underline;text-underline-offset:3px}
+.agenda .ev-s small{display:block;color:var(--muted);font-size:13px}
+.agenda li.past .ev-s{color:var(--muted)}
+.agenda .now{margin-left:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;background:var(--lake);color:var(--on-lake);border-radius:999px;padding:2px 7px;vertical-align:1px}
+.calmsg{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+
 /* rhythms */
 .rhythms{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .rhythm{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);cursor:pointer;text-align:left}
@@ -370,7 +383,8 @@ const stable = v => Array.isArray(v) ? '[' + v.map(stable).join(',') + ']'
 const S = {
   cfg: normCfg(null), weeks:{}, months:{},
   view:'hoy', day:TODAY, week:mondayOf(TODAY), month:monthKey(TODAY),
-  ready:false, mode:'connecting', confirm:null
+  ready:false, mode:'connecting', confirm:null,
+  cal:{status:'idle'}
 };
 
 function normCfg(c){
@@ -520,6 +534,133 @@ function subscribe(){
 
 const canEdit = () => S.ready && S.mode !== 'readonly';
 
+/* ---------- Google Calendar (mcp capability, read-only) ---------- */
+const CAL = 'Google Calendar';
+let mcp = null, perms = null, calUnsub = null, calKey = null, calRetried = false;
+const calInput = d => ({startTime:`${d}T00:00:00`, endTime:`${addDays(d,1)}T00:00:00`, orderBy:'startTime', pageSize:50});
+const CAL_RETRACT = ['needs_reauth','server_not_connected','server_not_found','selection_required','not_in_manifest',
+  'blocked_by_policy','approval_required','not_granted','capability_disabled','capability_removed','consent_required','user_changed'];
+
+async function connectCal(){
+  const cl = window.claude;
+  if (!cl || typeof cl.use !== 'function'){ S.cal = {status:'off'}; render(); return; }
+  const [m, p] = await Promise.all([cl.use('mcp').catch(() => null), cl.use('permissions').catch(() => null)]);
+  if (!m){ S.cal = {status:'off'}; render(); return; }
+  mcp = m; perms = p;
+  const st = p ? await p.state('mcp:' + CAL).catch(() => 'unavailable') : 'prompt';
+  if (st === 'denied'){ S.cal = {status:'denied'}; render(); return; }
+  ensureCalWatch(); render();
+}
+function ensureCalWatch(){
+  if (!mcp) return;
+  const d = S.day;
+  if (calKey === d) return;
+  if (calUnsub){ calUnsub(); calUnsub = null; }
+  calKey = d; calRetried = false;
+  S.cal = {status:'loading'};
+  calUnsub = mcp.watchTool(CAL, 'list_events', calInput(d), ev => {
+    if (calKey !== d) return;
+    if (ev.type === 'data') applyCal(ev.result); else calError(ev.error, d);
+  }, {cache:{staleTime:60000, gcTime:1800000}, refetchInterval:300000});
+}
+function applyCal(res){
+  const p = res && res.payload;
+  const list = p && typeof p === 'object' && Array.isArray(p.events) ? p.events : [];
+  const events = list.filter(e => e && e.status !== 'cancelled').map(e => ({
+    summary: typeof e.summary === 'string' ? e.summary : '',
+    start: e.start || {}, end: e.end || {},
+    location: typeof e.location === 'string' ? e.location : '',
+    link: typeof e.htmlLink === 'string' && e.htmlLink.startsWith('https://') ? e.htmlLink : ''
+  }));
+  const at = res && res.cache && res.cache.storedAt ? res.cache.storedAt : Date.now();
+  const same = S.cal.status === 'ok' && !S.cal.stale && stable(events) === stable(S.cal.events);
+  S.cal = {status:'ok', events, at};
+  if (S.view !== 'hoy') return;
+  if (same){ const el = document.getElementById('cal-at'); if (el) el.textContent = calStamp(); }
+  else render();
+}
+function calError(e, d){
+  const code = (e && e.code) || 'upstream_error';
+  if (CAL_RETRACT.includes(code) || S.cal.status !== 'ok') S.cal = {status:'error', code};
+  else S.cal.stale = true;
+  if (e && e.retryable && !calRetried){
+    calRetried = true;
+    setTimeout(() => calOnce(d), Math.min(60000, e.retryAfterMs || 1500 + Math.random()*2500));
+  }
+  if (S.view === 'hoy') render();
+}
+function calOnce(d){
+  if (!mcp || calKey !== d) return;
+  mcp.callTool(CAL, 'list_events', calInput(d)).then(
+    r => { if (calKey === d) applyCal(r); },
+    e => { if (calKey === d){ calRetried = true; calError(e, d); } });
+}
+const hm = t => new Intl.DateTimeFormat('es',{hour:'2-digit',minute:'2-digit'}).format(t);
+const calStamp = () => `${S.cal.stale ? 'No se pudo actualizar; muestro lo último que cargó. ' : ''}Actualizado a las ${hm(new Date(S.cal.at))}`;
+const CAL_MSG = {
+  needs_reauth:'La conexión con Google Calendar caducó. Vuelve a conectarlo en claude.ai, en Ajustes → Conectores.',
+  server_not_connected:'Google Calendar no está conectado a tu cuenta. Añádelo en claude.ai, en Ajustes → Conectores.',
+  server_not_found:'Google Calendar no está conectado a tu cuenta. Añádelo en claude.ai, en Ajustes → Conectores.',
+  selection_required:'Tienes más de una conexión de Google Calendar. Elige cuál usar en el aviso de claude.ai.',
+  not_in_manifest:'Esta página no tiene permiso para leer tu Google Calendar.',
+  consent_required:'Esta página no tiene permiso para leer tu Google Calendar.',
+  blocked_by_policy:'Tu organización no permite usar Google Calendar en esta página.',
+  approval_required:'Falta tu aprobación para leer el calendario.',
+  tool_error:'Google Calendar respondió con un error al pedir los eventos.',
+  not_granted:'La agenda no está disponible en esta vista.',
+  capability_disabled:'La agenda no está disponible en esta vista.',
+  capability_removed:'La agenda no está disponible en esta vista.'
+};
+function calAction(code){
+  if (code === 'not_in_manifest' || code === 'consent_required') return perms ? '<button class="pill" data-act="cal-perms">Revisar permisos</button>' : '';
+  if (code === 'approval_required') return '<button class="pill solid" data-act="cal-once">Permitir y cargar</button>';
+  if (['needs_reauth','server_not_connected','server_not_found','blocked_by_policy','not_granted','capability_disabled','capability_removed','user_changed'].includes(code)) return '';
+  return '<button class="pill" data-act="cal-once">Reintentar</button>';
+}
+function evRows(d){
+  const ds = parse(d), de = parse(addDays(d,1)), now = new Date();
+  return (S.cal.events || []).map(e => {
+    let label, st, en, allDay = false;
+    if (e.start.date){
+      allDay = true; label = 'Todo el día'; st = parse(e.start.date); en = e.end.date ? parse(e.end.date) : de;
+    } else {
+      st = new Date(e.start.dateTime); en = new Date(e.end.dateTime || e.start.dateTime);
+      if (isNaN(st) || isNaN(en)) return null;
+      if (st <= ds && en >= de){ allDay = true; label = 'Todo el día'; }
+      else if (st < ds) label = `hasta ${hm(en)}`;
+      else if (en > de) label = `desde ${hm(st)}`;
+      else label = `${hm(st)}–${hm(en)}`;
+    }
+    if (en <= ds || st >= de) return null;
+    return {e, label, allDay, st,
+      past: d === TODAY && !allDay && en <= now,
+      cur: d === TODAY && !allDay && st <= now && now < en};
+  }).filter(Boolean).sort((a,b) => (b.allDay - a.allDay) || (a.st - b.st));
+}
+function agendaBlock(d){
+  const c = S.cal, isToday = d === TODAY;
+  let body;
+  if (c.status === 'off') body = '<p class="empty">Tu agenda de Google Calendar aparece aquí al abrir esta página en claude.ai.</p>';
+  else if (c.status === 'denied') body = `<div class="calmsg"><p class="empty">Esta página no tiene permiso para leer tu Google Calendar.</p>${perms ? '<button class="pill" data-act="cal-perms">Permitir Google Calendar</button>' : ''}</div>`;
+  else if (c.status === 'error') body = `<div class="calmsg"><p class="empty">${CAL_MSG[c.code] || 'No pude leer tu agenda ahora.'}</p>${calAction(c.code)}</div>`;
+  else if (c.status !== 'ok') body = '<p class="empty">Cargando tu agenda…</p>';
+  else {
+    const rows = evRows(d);
+    body = rows.length ? `<ul class="agenda">${rows.map(r => {
+        const title = esc(r.e.summary || '(Sin título)');
+        return `<li class="${r.past ? 'past' : ''}"><span class="ev-t">${r.label}</span><span class="ev-s">${r.e.link ? `<a href="${esc(r.e.link)}" target="_blank" rel="noopener">${title}</a>` : title}${r.cur ? '<span class="now">Ahora</span>' : ''}${r.e.location ? `<small>${esc(r.e.location)}</small>` : ''}</span></li>`;
+      }).join('')}</ul>`
+      : `<p class="empty">${isToday ? 'Nada en el calendario. Un día abierto también es una elección.' : 'No había nada en el calendario ese día.'}</p>`;
+    body += `<p class="meta" id="cal-at">${calStamp()}</p>`;
+  }
+  const an = S.cfg.anchors.find(a => a.id === 'agenda' && a.active);
+  const mark = an && isToday && c.status === 'ok' && !day(d).a.agenda ? '<button class="linkbtn" data-act="anchor" data-id="agenda">Listo, ya miré la agenda</button>' : '';
+  return `<section class="block">
+    <div class="block-h"><h2>Agenda</h2><span class="hint">${isToday ? 'Lo que ya está comprometido hoy. Elige tus tres cosas alrededor de esto.' : 'Lo que tenías en el calendario ese día.'}</span></div>
+    ${body}${mark}
+  </section>`;
+}
+
 /* ---------- scoring ---------- */
 function scoreWeek(m){
   const w = S.weeks[m]; if (!w) return null;
@@ -617,6 +758,7 @@ function viewHoy(){
     ${focus.length ? `<p class="weekfocus"><span class="label">Esta semana importa</span>${focus.map(f => `<span class="it">${esc(f)}</span>`).join('')}</p>` : ''}
   </section>
   ${ritual}
+  ${agendaBlock(d)}
 
   <section class="block">
     <div class="block-h"><h2>Lo importante hoy</h2><span class="hint">Máximo tres. Si entra algo nuevo, algo sale.</span></div>
@@ -990,11 +1132,19 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const a = b.dataset.act, id = b.dataset.id;
-  const nav = ['day','day-today','week','week-now','month','goto-week','confirm-no'];
+  const nav = ['day','day-today','week','week-now','month','goto-week','confirm-no','cal-once','cal-perms'];
   if (!canEdit() && !nav.includes(a)) return;
   switch (a){
-    case 'day': { const n = addDays(S.day, +b.dataset.n); if (n <= TODAY && n >= MIN_MONDAY) S.day = n; break; }
-    case 'day-today': S.day = TODAY; break;
+    case 'day': { const n = addDays(S.day, +b.dataset.n); if (n <= TODAY && n >= MIN_MONDAY) S.day = n; ensureCalWatch(); break; }
+    case 'day-today': S.day = TODAY; ensureCalWatch(); break;
+    case 'cal-once': S.cal = {status:'loading'}; calRetried = true; calOnce(S.day); break;
+    case 'cal-perms':
+      if (!perms) return;
+      perms.manage().then(async () => {
+        const st = await perms.state('mcp:' + CAL).catch(() => 'unavailable');
+        if (st !== 'denied'){ calKey = null; ensureCalWatch(); render(); }
+      }, () => toast('Abre el menú Permisos de esta página y activa Google Calendar.'));
+      return;
     case 'week': { const n = addDays(S.week, 7 * b.dataset.n); if (n >= MIN_MONDAY && n <= MAX_MONDAY) S.week = n; break; }
     case 'week-now': S.week = mondayOf(TODAY); break;
     case 'month': { const n = shiftMonth(S.month, +b.dataset.n); if (n >= MIN_MONTH && n <= MAX_MONTH) S.month = n; break; }
@@ -1090,7 +1240,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden'){ flushAll(); return; }
   const prev = TODAY; setToday();
   if (prev !== TODAY){
-    if (S.day === prev) S.day = TODAY;
+    if (S.day === prev){ S.day = TODAY; ensureCalWatch(); }
     if (S.week === mondayOf(prev)) S.week = mondayOf(TODAY);
     if (S.month === monthKey(prev)) S.month = monthKey(TODAY);
     render();
@@ -1100,5 +1250,6 @@ window.addEventListener('pagehide', flushAll);
 
 route();
 connect();
+connectCal();
 })();
 </script>
