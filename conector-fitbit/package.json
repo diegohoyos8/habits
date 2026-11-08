@@ -1,0 +1,8 @@
+{
+  "name": "conector-fitbit",
+  "private": true,
+  "type": "module",
+  "description": "Conector MCP de solo lectura para leer datos de una Fitbit con la Google Health API.",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node test/run.mjs" }
+}

@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    { "source": "/.well-known/oauth-protected-resource(.*)", "destination": "/api/oauth?route=prm" },
+    { "source": "/.well-known/oauth-authorization-server(.*)", "destination": "/api/oauth?route=asm" },
+    { "source": "/.well-known/openid-configuration(.*)", "destination": "/api/oauth?route=asm" },
+    { "source": "/register", "destination": "/api/oauth?route=register" },
+    { "source": "/authorize", "destination": "/api/oauth?route=authorize" },
+    { "source": "/callback", "destination": "/api/oauth?route=callback" },
+    { "source": "/token", "destination": "/api/oauth?route=token" },
+    { "source": "/mcp", "destination": "/api/mcp" },
+    { "source": "/", "destination": "/api/oauth?route=home" }
+  ]
+}
