@@ -138,6 +138,27 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .dot.on{background:var(--lake);border-color:var(--lake)}
 .extra{font-size:12px;color:var(--lake);font-weight:700}
 
+/* ocio by type */
+.ocio-rows{display:flex;flex-direction:column;gap:6px}
+.orow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.orow>span{font-size:15px}
+.orow .stepper output{min-width:64px}
+#ocio-que{width:100%;min-width:0}
+
+/* todo */
+.todo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.todo li{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.todo li:last-child{border-bottom:1px solid var(--line)}
+.todo .t{flex:1;min-width:0;overflow-wrap:anywhere}
+.todo li.is-done .t{text-decoration:line-through;text-decoration-color:var(--muted);color:var(--muted)}
+.todo .check{width:26px;height:26px;flex:0 0 26px;font-size:13px}
+.todo .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0 4px}
+
+/* settings: weekday chips */
+.dchips{display:flex;gap:4px;flex-wrap:wrap}
+.dchip{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:13px;font-weight:700;padding:0}
+.dchip[aria-pressed="true"]{background:var(--lake);border-color:var(--lake);color:var(--on-lake)}
+
 /* upcoming dates */
 .dates{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .dates li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
@@ -195,6 +216,8 @@ table.matrix{border-collapse:collapse;width:100%;min-width:340px;font-size:14px}
 .matrix tbody tr:not(.grp){border-top:1px solid var(--line)}
 .cell{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--line);background:transparent;cursor:pointer;padding:0}
 .cell[aria-pressed="true"]{background:var(--lake);border-color:var(--lake)}
+.cell.sched{border-color:var(--lake);border-style:dashed}
+.cell[aria-pressed="true"]{border-style:solid}
 .cell:disabled{border-style:dashed;opacity:.4;cursor:default}
 .matrix td.val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
 .matrix td.tot{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;padding-left:8px}
@@ -312,7 +335,7 @@ const AREAS = {
   trabajo:'Trabajo y dinero', crecimiento:'Crecimiento', creatividad:'Creatividad', hogar:'Hogar', ocio:'Ocio elegido'
 };
 const DEFAULT_CFG = {
-  birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:6,
+  v:2, birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:10,
   anchors:[
     {id:'meditar', label:'Meditar', hint:'Aunque sean 5 minutos', area:'mente', active:true},
     {id:'agenda',  label:'Mirar la agenda', hint:'2 minutos: qué importa hoy', area:'mente', active:true},
@@ -331,11 +354,17 @@ const DEFAULT_CFG = {
     {id:'creativo',  label:'Proyecto creativo', area:'creatividad', target:2, active:true},
     {id:'perfil',    label:'Perfil profesional: CV, LinkedIn, cursos de IA', area:'crecimiento', target:2, active:true},
     {id:'apps',      label:'Construir mis apps de Claude', area:'crecimiento', target:2, active:true},
-    {id:'limpiar',   label:'Limpiar la casa', area:'hogar', target:2, active:true},
     {id:'compra',    label:'Hacer la compra', area:'hogar', target:1, active:true}
+  ],
+  // Household chores on fixed weekdays (0 = lunes … 6 = domingo).
+  chores:[
+    {id:'aspirar', label:'Aspirar', days:[2,4], active:true},
+    {id:'trapear', label:'Trapear', days:[4], active:true},
+    {id:'wc',      label:'Limpiar el WC', days:[3], active:true}
   ],
   keyDates:[]
 };
+const OCIO_TYPES = [['serie','Película o serie'],['juego','Videojuego']];
 const THREE_PH = ['Lo que haría que hoy valga la pena','Algo de trabajo que mueve la aguja','Algo para ti o para tu familia'];
 const SLEEP_OPTS = [[5,'≤5'],[6,'6'],[6.5,'6½'],[7,'7'],[7.5,'7½'],[8,'8'],[9,'9+']];
 const DOW = ['L','M','X','J','V','S','D'];
@@ -384,7 +413,7 @@ const S = {
   cfg: normCfg(null), weeks:{}, months:{},
   view:'hoy', day:TODAY, week:mondayOf(TODAY), month:monthKey(TODAY),
   ready:false, mode:'connecting', confirm:null,
-  cal:{status:'idle'}
+  cal:{status:'idle'}, todo:{items:[]}
 };
 
 function normCfg(c){
@@ -395,7 +424,14 @@ function normCfg(c){
   if (!Array.isArray(o.rhythms)) o.rhythms = structuredClone(DEFAULT_CFG.rhythms);
   if (!Array.isArray(o.keyDates)) o.keyDates = [];
   if (typeof o.sleepTarget !== 'number') o.sleepTarget = 7;
-  if (typeof o.ocioBudgetH !== 'number') o.ocioBudgetH = 6;
+  if (typeof o.ocioBudgetH !== 'number') o.ocioBudgetH = 10;
+  if (!(c.v >= 2)){
+    // v2: fixed-day chores replace the generic "Limpiar la casa" rhythm; weekly leisure limit is 10 h.
+    o.rhythms = o.rhythms.filter(r => r.id !== 'limpiar');
+    if (o.ocioBudgetH === 6) o.ocioBudgetH = 10;
+    o.v = 2;
+  }
+  if (!Array.isArray(o.chores)) o.chores = structuredClone(DEFAULT_CFG.chores);
   return o;
 }
 function newDay(){ return {a:{}, three:[{t:'',d:false},{t:'',d:false},{t:'',d:false}], done:[], note:''}; }
@@ -411,6 +447,7 @@ function normWeek(w){
     w.days[k] = x;
   }
   w.rhythms = w.rhythms && typeof w.rhythms === 'object' ? w.rhythms : {};
+  w.chores = w.chores && typeof w.chores === 'object' ? w.chores : {};
   w.plan = Object.assign({focus:['','',''], skip:''}, w.plan || {});
   if (!Array.isArray(w.plan.focus)) w.plan.focus = ['','',''];
   while (w.plan.focus.length < 3) w.plan.focus.push('');
@@ -428,6 +465,15 @@ const day = d => { const w = week(mondayOf(d)); return w.days[d] || (w.days[d] =
 const month = k => S.months[k] || (S.months[k] = normMonth({key:k}));
 const activeAnchors = () => S.cfg.anchors.filter(a => a.active);
 const activeRhythms = () => S.cfg.rhythms.filter(r => r.active && r.target > 0);
+const activeChores = () => S.cfg.chores.filter(c => c.active && Array.isArray(c.days) && c.days.length);
+function normTodo(t){
+  const items = t && Array.isArray(t.items) ? t.items : [];
+  return {items: items.filter(i => i && typeof i.t === 'string' && i.id).map(i => ({id:String(i.id), t:i.t, done:!!i.done, created:i.created || '', doneOn:i.doneOn || ''}))};
+}
+function ocioParts(x){
+  const t = x.ocioT || {}, serie = t.serie || 0, juego = t.juego || 0;
+  return {serie, juego, otro: Math.max(0, (x.ocio || 0) - serie - juego)};
+}
 
 /* ---------- storage (db capability, private per person) ---------- */
 let db = null, base = null;
@@ -468,6 +514,7 @@ const stamp = (o, extra) => Object.assign(o, extra, {updatedAt:new Date().toISOS
 const saveWeek = m => schedule(`${base}/w-${m}`, () => structuredClone(stamp(S.weeks[m], {kind:'week', start:m})));
 const saveMonth = k => schedule(`${base}/m-${k}`, () => structuredClone(stamp(S.months[k], {kind:'month', key:k})));
 const saveCfg = () => schedule(`${base}/config`, () => structuredClone(stamp(S.cfg, {kind:'config'})));
+const saveTodo = () => schedule(`${base}/todo`, () => structuredClone(stamp(S.todo, {kind:'todo'})));
 
 function saveState(){
   const el = document.getElementById('savestate');
@@ -488,10 +535,10 @@ async function connect(){
 }
 
 function subscribe(){
-  const got = {cfg:false, weeks:false, months:false};
+  const got = {cfg:false, weeks:false, months:false, todo:false};
   const timer = setTimeout(() => { if (!S.ready){ S.mode = 'slow'; render(); } }, 10000);
   const ready = changed => {
-    if (!S.ready && got.cfg && got.weeks && got.months){ S.ready = true; S.mode = 'ok'; clearTimeout(timer); changed = true; }
+    if (!S.ready && got.cfg && got.weeks && got.months && got.todo){ S.ready = true; S.mode = 'ok'; clearTimeout(timer); changed = true; }
     if (changed) render();
   };
   const fail = e => {
@@ -508,6 +555,14 @@ function subscribe(){
       if (stable(next) !== stable(S.cfg)){ S.cfg = next; changed = true; }
     }
     got.cfg = true; ready(changed);
+  }, fail);
+  db.doc(`${base}/todo`).onSnapshot(snap => {
+    let changed = false;
+    if (!isBusy(`${base}/todo`)){
+      const next = normTodo(snap.exists ? snap.data() : null);
+      if (stable(next) !== stable(normTodo(S.todo))){ S.todo = next; changed = true; }
+    }
+    got.todo = true; ready(changed);
   }, fail);
   const col = db.collection(base);
   col.where('kind','==','week').orderBy('start','desc').limit(30).onSnapshot(snap => {
@@ -676,6 +731,12 @@ function scoreWeek(m){
     const c = (w.rhythms[r.id] || []).length;
     add(r.area, Math.min(1, c / r.target)); if (c) any = true;
   }
+  for (const c of activeChores()){
+    const sched = days.filter(d => c.days.includes(dow(d))).length;
+    if (!sched) continue;
+    const done = (w.chores[c.id] || []).length;
+    add('hogar', Math.min(1, done / sched)); if (done) any = true;
+  }
   const sl = days.map(d => w.days[d] && w.days[d].sleep).filter(v => typeof v === 'number');
   if (sl.length){ add('cuerpo', sl.filter(v => v >= S.cfg.sleepTarget).length / sl.length); any = true; }
   const oc = days.map(d => w.days[d] && w.days[d].ocio).filter(v => typeof v === 'number');
@@ -687,6 +748,43 @@ function scoreWeek(m){
           complete: addDays(m,6) < TODAY};
 }
 function recentMondays(n){ const cur = mondayOf(TODAY); return Array.from({length:n}, (_,i) => addDays(cur, -7*(n-1-i))); }
+function weekOcioBy(m){
+  const w = S.weeks[m], out = {serie:0, juego:0, otro:0};
+  if (!w) return out;
+  for (const d of weekDays(m)){ if (!w.days[d]) continue; const p = ocioParts(w.days[d]); out.serie += p.serie; out.juego += p.juego; out.otro += p.otro; }
+  return out;
+}
+function ocioByText(o){
+  const parts = [];
+  if (o.serie) parts.push(`películas y series ${fmtMin(o.serie)}`);
+  if (o.juego) parts.push(`videojuegos ${fmtMin(o.juego)}`);
+  if (o.otro) parts.push(`sin tipo ${fmtMin(o.otro)}`);
+  return parts.join(' · ');
+}
+function choreDaysText(c){ return c.days.slice().sort().map(i => DOW_LONG[i].slice(0,3)).join(' y '); }
+/** Chores to show on day d: scheduled that day, done that day, or still owed from earlier in the week. */
+function choresFor(d){
+  const m = mondayOf(d), w = week(m), upTo = weekDays(m).filter(x => x <= d);
+  return activeChores().map(c => {
+    const done = w.chores[c.id] || [], doneToday = done.includes(d), today = c.days.includes(dow(d));
+    const sched = upTo.filter(x => c.days.includes(dow(x)));
+    const owed = sched.length - done.length;
+    const earlier = sched.filter(x => x < d);
+    let note = '';
+    if (today && !doneToday && owed <= 0) note = 'Ya la hiciste antes esta semana';
+    else if (today && !doneToday) note = owed > 1 && earlier.length ? `Toca hoy · también quedó del ${DOW_LONG[dow(earlier[earlier.length-1])]}` : 'Toca hoy';
+    else if (!today && !doneToday && owed > 0 && earlier.length) note = `Quedó del ${DOW_LONG[dow(earlier[earlier.length-1])]}`;
+    else if (doneToday) note = today ? 'Hecho' : 'Hecho hoy';
+    return {c, show: today || doneToday || owed > 0, doneToday, note};
+  }).filter(x => x.show);
+}
+function nextChore(d){
+  for (let i = 1; i <= 7; i++){
+    const n = addDays(d, i), list = activeChores().filter(c => c.days.includes(dow(n)));
+    if (list.length) return `${list.map(c => c.label.toLowerCase()).join(' y ')} el ${DOW_LONG[dow(n)]}`;
+  }
+  return '';
+}
 function weekOcio(m){ const w = S.weeks[m]; if (!w) return 0; return weekDays(m).reduce((s,d) => s + ((w.days[d] && w.days[d].ocio) || 0), 0); }
 function weekSleep(m){ const w = S.weeks[m]; if (!w) return []; return weekDays(m).map(d => w.days[d] && w.days[d].sleep).filter(v => typeof v === 'number'); }
 function lifeWeek(b){ if (!b) return null; const n = Math.floor(diffDays(b, TODAY) / 7) + 1; return n > 0 ? n : null; }
@@ -738,12 +836,17 @@ function viewHoy(){
 
   const sl = weekSleep(m), ocW = weekOcio(m), budget = S.cfg.ocioBudgetH * 60;
   const ocPct = budget ? Math.min(100, ocW / budget * 100) : 0;
+  const op = ocioParts(x), ocBy = weekOcioBy(m);
   const up = upcoming(d);
+  const chores = choresFor(d), allChores = activeChores();
+  const todoOpen = S.todo.items.filter(t => !t.done), todoDone = S.todo.items.filter(t => t.done && t.doneOn === d);
 
   const autoDone = [
     ...x.three.filter(t => t.d && t.t.trim()).map(t => t.t),
     ...anchors.filter(a => x.a[a.id]).map(a => a.label),
-    ...rh.filter(r => (w.rhythms[r.id] || []).includes(d)).map(r => r.label)
+    ...rh.filter(r => (w.rhythms[r.id] || []).includes(d)).map(r => r.label),
+    ...allChores.filter(c => (w.chores[c.id] || []).includes(d)).map(c => c.label),
+    ...todoDone.map(t => t.t)
   ];
 
   return `
@@ -786,13 +889,18 @@ function viewHoy(){
       </div>
       <div>
         <h3>Ocio elegido</h3>
-        <div class="stepper">
-          <button data-act="ocio" data-d="-30" aria-label="Quitar 30 minutos" ${!x.ocio ? 'disabled' : ''}>−</button>
-          <output aria-live="polite">${fmtMin(x.ocio || 0)}</output>
-          <button data-act="ocio" data-d="30">+30 min</button>
+        <div class="ocio-rows">
+          ${OCIO_TYPES.map(([k,l]) => `<div class="orow"><span>${l}</span><div class="stepper">
+            <button data-act="ocio" data-k="${k}" data-d="-30" aria-label="Quitar 30 minutos de ${l.toLowerCase()}" ${!op[k] ? 'disabled' : ''}>−</button>
+            <output>${fmtMin(op[k])}</output>
+            <button data-act="ocio" data-k="${k}" data-d="30" aria-label="Añadir 30 minutos de ${l.toLowerCase()}">+30</button>
+          </div></div>`).join('')}
         </div>
+        ${op.otro ? `<p class="meta">Además, ${fmtMin(op.otro)} anotados antes sin tipo.</p>` : ''}
+        <label class="sr" for="ocio-que">Qué elegiste</label>
+        <input type="text" id="ocio-que" data-bind="ocio-que" value="${esc(x.ocioQue || '')}" maxlength="80" placeholder="¿Qué fue? Ej.: una película, dos capítulos" autocomplete="off">
         <div class="meter ${ocW > budget ? 'over' : ''}" role="img" aria-label="${fmtMin(ocW)} de ${S.cfg.ocioBudgetH} horas"><span style="width:${ocPct}%"></span></div>
-        <p class="meta">${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h esta semana${ocW > budget ? '. Por encima de lo elegido: es un dato, no una falta.' : ''}</p>
+        <p class="meta">${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h de límite esta semana${ocioByText(ocBy) ? ' · ' + ocioByText(ocBy) : ''}${ocW > budget ? '. Pasaste el límite: es un dato, no una falta.' : ''}</p>
       </div>
     </div>
   </section>
@@ -807,11 +915,36 @@ function viewHoy(){
     </ul>
   </section>
 
+  ${allChores.length ? `<section class="block">
+    <div class="block-h"><h2>Hogar</h2><span class="hint">${allChores.map(c => `${esc(c.label)}: ${choreDaysText(c)}`).join(' · ')}</span></div>
+    ${chores.length ? `<ul class="rhythms">${chores.map(({c, doneToday, note}) => `<li><button class="rhythm" data-act="chore" data-id="${c.id}" data-day="${d}" aria-pressed="${doneToday}">
+        <span class="r-label">${esc(c.label)}<span class="r-area">${note}</span></span></button></li>`).join('')}</ul>`
+      : `<p class="empty">Hoy no toca nada de la casa.${nextChore(d) ? ' Lo próximo: ' + esc(nextChore(d)) + '.' : ''}</p>`}
+  </section>` : ''}
+
   ${up.length ? `<section class="block">
     <div class="block-h"><h2>Fechas clave</h2><span class="hint">Lo que vence en los próximos diez días.</span></div>
     <ul class="dates">${up.map(u => dateRow(u)).join('')}</ul>
   </section>` : (S.cfg.keyDates.length ? '' : `<section class="block"><div class="block-h"><h2>Fechas clave</h2>
     <span class="hint">Añade una vez la renta, los créditos y los cobros en <a href="#mes">Mes</a>, y aparecerán aquí cuando se acerquen.</span></div></section>`)}
+
+  <section class="block">
+    <div class="block-h"><h2>Pendientes varios</h2><span class="hint">Sin fecha ni orden. Cuando hagas uno, márcalo y pasa a Hecho.</span></div>
+    ${todoOpen.length || todoDone.length ? `<ul class="todo">
+      ${[...todoOpen, ...todoDone].map(t => `<li class="${t.done ? 'is-done' : ''}">
+        <button class="check" data-act="todo" data-id="${t.id}" aria-pressed="${t.done}" aria-label="${t.done ? 'Marcar como pendiente' : 'Marcar como hecho'}">✓</button>
+        <span class="t">${esc(t.t)}</span>
+        ${S.confirm === 'todo:' + t.id ? `<button class="pill danger" data-act="todo-del-yes" data-id="${t.id}">Eliminar</button><button class="pill" data-act="confirm-no">Cancelar</button>`
+          : `<button class="x" data-act="todo-del" data-id="${t.id}" aria-label="Eliminar ${esc(t.t)}">×</button>`}
+      </li>`).join('')}
+    </ul>` : '<p class="empty">Nada pendiente por ahora.</p>'}
+    ${todoOpen.length > 7 ? '<p class="hint">La lista va creciendo. ¿Hay algo que puedas soltar?</p>' : ''}
+    <form class="add" data-form="todo">
+      <label class="sr" for="todo-new">Nuevo pendiente</label>
+      <input id="todo-new" placeholder="Nuevo pendiente…" maxlength="120" autocomplete="off">
+      <button class="btn ghost">Añadir</button>
+    </form>
+  </section>
 
   <section class="block">
     <div class="block-h"><h2>Hecho ${d === TODAY ? 'hoy' : 'este día'}</h2><span class="hint">Cierra el día con lo que sí hiciste.</span></div>
@@ -861,8 +994,15 @@ function viewSemana(){
     const arr = w.rhythms[r.id] || [];
     return row(esc(r.label), days.map(d => `<td><button class="cell" data-act="rhythm" data-id="${r.id}" data-day="${d}" aria-pressed="${arr.includes(d)}" aria-label="${esc(r.label)}, ${DOW_LONG[dow(d)]}" ${d > TODAY ? 'disabled' : ''}></button></td>`).join(''), `${arr.length}/${r.target}`, arr.length >= r.target);
   }).join('');
+  const chs = activeChores();
+  const choreRows = chs.map(c => {
+    const arr = w.chores[c.id] || [], sched = days.filter(d => c.days.includes(dow(d))).length;
+    return row(esc(c.label), days.map(d => `<td><button class="cell ${c.days.includes(dow(d)) ? 'sched' : ''}" data-act="chore" data-id="${c.id}" data-day="${d}" aria-pressed="${arr.includes(d)}" aria-label="${esc(c.label)}, ${DOW_LONG[dow(d)]}${c.days.includes(dow(d)) ? ' (toca)' : ''}" ${d > TODAY ? 'disabled' : ''}></button></td>`).join(''), `${arr.length}/${sched}`, arr.length >= sched);
+  }).join('');
   const sleepRow = row('Sueño (h)', days.map(d => `<td class="val">${w.days[d] && typeof w.days[d].sleep === 'number' ? fmtSleep(w.days[d].sleep) : '·'}</td>`).join(''), sl.length ? fmtNum(avg(sl),1) : '–', sl.length && avg(sl) >= S.cfg.sleepTarget);
-  const ocioRow = row('Ocio (min)', days.map(d => `<td class="val">${w.days[d] && w.days[d].ocio ? w.days[d].ocio : '·'}</td>`).join(''), fmtMin(oc), oc && oc <= budget);
+  const ocioRow = row('Ocio (min)', days.map(d => { const x = w.days[d]; if (!x || !x.ocio) return '<td class="val">·</td>';
+    const t = ocioByText(Object.assign({serie:0, juego:0, otro:0}, ocioParts(x))) + (x.ocioQue ? ' · ' + esc(x.ocioQue) : '');
+    return `<td class="val" title="${t}">${x.ocio}</td>`; }).join(''), fmtMin(oc), oc && oc <= budget);
 
   return `
   <section class="dayhead">
@@ -875,7 +1015,7 @@ function viewSemana(){
     ${!isNext ? `<div class="stats">
       <div class="stat"><b>${sc ? pct(sc.overall) : '–'}</b><span>balance${sc && !sc.complete ? ' (en curso)' : ''}</span></div>
       <div class="stat"><b>${sl.length ? fmtNum(avg(sl),1) + ' h' : '–'}</b><span>sueño promedio</span></div>
-      <div class="stat"><b>${fmtMin(oc)}</b><span>ocio de ${fmtNum(S.cfg.ocioBudgetH,1)} h elegidas</span></div>
+      <div class="stat"><b>${fmtMin(oc)}</b><span>ocio, límite ${fmtNum(S.cfg.ocioBudgetH,1)} h${ocioByText(weekOcioBy(m)) ? '<br>' + ocioByText(weekOcioBy(m)) : ''}</span></div>
     </div>` : ''}
   </section>
 
@@ -895,6 +1035,7 @@ function viewSemana(){
       <thead><tr><th scope="col"><span class="sr">Hábito</span></th>${days.map(d => `<th scope="col" class="${d === TODAY ? 'is-today' : ''}">${DOW[dow(d)]}<small>${parse(d).getDate()}</small></th>`).join('')}<th scope="col">Total</th></tr></thead>
       <tbody>
         <tr class="grp"><th colspan="9">Anclas diarias</th></tr>${anchorRows}${sleepRow}${ocioRow}
+        ${chs.length ? `<tr class="grp"><th colspan="9">Hogar (borde punteado = toca ese día)</th></tr>${choreRows}` : ''}
         <tr class="grp"><th colspan="9">Ritmos semanales</th></tr>${rhythmRows}
       </tbody>
     </table></div>
@@ -1075,7 +1216,7 @@ function viewAjustes(){
     <div class="block-h"><h2>Medidas</h2><span class="hint">Metas amables. Se pueden mover cuando la vida cambia.</span></div>
     <div class="grid2">
       <div class="stack"><label for="cfg-sleep">Horas de sueño que buscas</label><input type="number" id="cfg-sleep" data-bind="cfg-num" data-k="sleepTarget" min="5" max="10" step="0.5" value="${c.sleepTarget}"></div>
-      <div class="stack"><label for="cfg-ocio">Ocio elegido por semana (horas)</label><input type="number" id="cfg-ocio" data-bind="cfg-num" data-k="ocioBudgetH" min="0" max="40" step="0.5" value="${c.ocioBudgetH}"></div>
+      <div class="stack"><label for="cfg-ocio">Límite de ocio por semana (horas)</label><input type="number" id="cfg-ocio" data-bind="cfg-num" data-k="ocioBudgetH" min="0" max="40" step="0.5" value="${c.ocioBudgetH}"></div>
     </div>
   </section>
 
@@ -1097,6 +1238,18 @@ function viewAjustes(){
       <span class="tgt"><button data-act="tgt" data-id="${r.id}" data-n="-1" aria-label="Menos veces">−</button><span>${r.target}×</span><button data-act="tgt" data-id="${r.id}" data-n="1" aria-label="Más veces">+</button></span>
       ${delBtn('rhythms', r.id, r.label)}</li>`).join('')}</ul>
     <form class="add" data-form="rhythm"><label class="sr" for="rh-new">Nuevo ritmo</label><input id="rh-new" placeholder="Nuevo ritmo, ej.: Cocinar algo nuevo" maxlength="60" autocomplete="off"><button class="btn ghost">Añadir</button></form>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Hogar con día fijo</h2><span class="hint">Cada tarea tiene sus días. Si un día no se pudo, márcala otro día de la misma semana y cuenta igual.</span></div>
+    <ul class="setlist">${c.chores.map(ch => `<li>
+      <input type="checkbox" id="ch-on-${ch.id}" data-bind="ch-on" data-id="${ch.id}" ${ch.active ? 'checked' : ''} aria-label="Activa">
+      <label class="sr" for="ch-l-${ch.id}">Nombre</label><input type="text" id="ch-l-${ch.id}" data-bind="ch-label" data-id="${ch.id}" value="${esc(ch.label)}" maxlength="40">
+      <span class="dchips" role="group" aria-label="Días de ${esc(ch.label)}">${DOW.map((l,i) => `<button class="dchip" data-act="chore-day" data-id="${ch.id}" data-d="${i}" aria-pressed="${ch.days.includes(i)}" aria-label="${DOW_LONG[i]}">${l}</button>`).join('')}</span>
+      ${S.confirm === 'chores:' + ch.id
+        ? `<button class="pill danger" data-act="cfg-del-yes" data-list="chores" data-id="${ch.id}">Eliminar</button><button class="pill" data-act="confirm-no">Cancelar</button>`
+        : `<button class="pill" data-act="cfg-del" data-list="chores" data-id="${ch.id}" aria-label="Eliminar ${esc(ch.label)}">×</button>`}</li>`).join('')}</ul>
+    <form class="add" data-form="chore"><label class="sr" for="ch-new">Nueva tarea de la casa</label><input id="ch-new" placeholder="Nueva tarea, ej.: Cambiar sábanas" maxlength="40" autocomplete="off"><button class="btn ghost">Añadir</button></form>
   </section>
 
   <section class="block prose">
@@ -1159,7 +1312,33 @@ document.addEventListener('click', e => {
     case 'anchor': { const x = day(S.day); x.a[id] = !x.a[id]; saveWeek(mondayOf(S.day)); break; }
     case 'cell': { const d = b.dataset.day; if (d > TODAY) break; const x = day(d); x.a[id] = !x.a[id]; saveWeek(mondayOf(d)); break; }
     case 'sleep': { const x = day(S.day), v = +b.dataset.v; x.sleep = x.sleep === v ? null : v; saveWeek(mondayOf(S.day)); break; }
-    case 'ocio': { const x = day(S.day); x.ocio = Math.max(0, (x.ocio || 0) + (+b.dataset.d)); saveWeek(mondayOf(S.day)); break; }
+    case 'ocio': {
+      const x = day(S.day), k = b.dataset.k, p = ocioParts(x);
+      if (!(k in p)) break;
+      p[k] = Math.max(0, p[k] + (+b.dataset.d));
+      x.ocioT = {serie:p.serie, juego:p.juego}; x.ocio = p.serie + p.juego + p.otro;
+      saveWeek(mondayOf(S.day)); break;
+    }
+    case 'chore': {
+      const d = b.dataset.day; if (d > TODAY) break;
+      const w = week(mondayOf(d)), arr = w.chores[id] ? w.chores[id].slice() : [], i = arr.indexOf(d);
+      if (i >= 0) arr.splice(i, 1); else arr.push(d);
+      w.chores[id] = arr.sort(); saveWeek(mondayOf(d)); break;
+    }
+    case 'chore-day': {
+      const c = S.cfg.chores.find(x => x.id === id), n = +b.dataset.d; if (!c) break;
+      c.days = c.days.includes(n) ? c.days.filter(x => x !== n) : [...c.days, n].sort();
+      saveCfg(); break;
+    }
+    case 'todo': {
+      const t = S.todo.items.find(x => x.id === id); if (!t) break;
+      t.done = !t.done; t.doneOn = t.done ? S.day : '';
+      const done = S.todo.items.filter(x => x.done).sort((a,b) => a.doneOn < b.doneOn ? -1 : 1);
+      if (done.length > 60){ const drop = new Set(done.slice(0, done.length - 60).map(x => x.id)); S.todo.items = S.todo.items.filter(x => !drop.has(x.id)); }
+      saveTodo(); break;
+    }
+    case 'todo-del': S.confirm = 'todo:' + id; break;
+    case 'todo-del-yes': S.todo.items = S.todo.items.filter(x => x.id !== id); S.confirm = null; saveTodo(); break;
     case 'rhythm': {
       const d = b.dataset.day; if (d > TODAY) break;
       const w = week(mondayOf(d)), arr = w.rhythms[id] ? w.rhythms[id].slice() : [], i = arr.indexOf(d);
@@ -1189,6 +1368,8 @@ document.addEventListener('input', e => {
     case 'review': week(S.week).review[el.dataset.k] = el.value; saveWeek(S.week); break;
     case 'mnote': month(S.month).review.note = el.value; saveMonth(S.month); break;
     case 'an-label': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a && el.value.trim()){ a.label = el.value; saveCfg(); } break; }
+    case 'ocio-que': day(S.day).ocioQue = el.value; saveWeek(mondayOf(S.day)); break;
+    case 'ch-label': { const c = S.cfg.chores.find(x => x.id === el.dataset.id); if (c && el.value.trim()){ c.label = el.value; saveCfg(); } break; }
     case 'rh-label': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r && el.value.trim()){ r.label = el.value; saveCfg(); } break; }
   }
 });
@@ -1200,6 +1381,7 @@ document.addEventListener('change', e => {
     case 'cfg': S.cfg[el.dataset.k] = el.value; saveCfg(); break;
     case 'cfg-num': { const v = parseFloat(el.value); if (!isNaN(v)){ S.cfg[el.dataset.k] = Math.max(+el.min, Math.min(+el.max, v)); saveCfg(); } break; }
     case 'an-on': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a){ a.active = el.checked; saveCfg(); } break; }
+    case 'ch-on': { const c = S.cfg.chores.find(x => x.id === el.dataset.id); if (c){ c.active = el.checked; saveCfg(); } break; }
     case 'rh-on': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r){ r.active = el.checked; saveCfg(); } break; }
     case 'rh-area': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r){ r.area = el.value; saveCfg(); } break; }
     default: return;
@@ -1222,6 +1404,13 @@ document.addEventListener('submit', e => {
   } else if (t === 'anchor'){
     const i = document.getElementById('an-new'), v = i.value.trim(); if (!v) return;
     S.cfg.anchors.push({id:uid36(), label:v, hint:'', area:'mente', active:true}); saveCfg();
+  } else if (t === 'todo'){
+    const i = document.getElementById('todo-new'), v = i.value.trim(); if (!v) return;
+    S.todo.items.push({id:uid36(), t:v, done:false, created:TODAY, doneOn:''}); i.value = ''; saveTodo();
+  } else if (t === 'chore'){
+    const i = document.getElementById('ch-new'), v = i.value.trim(); if (!v) return;
+    S.cfg.chores.push({id:uid36(), label:v, days:[dow(TODAY)], active:true}); saveCfg();
+    toast('Tarea añadida para los ' + DOW_LONG[dow(TODAY)] + '. Cambia los días con las letras.');
   } else if (t === 'rhythm'){
     const i = document.getElementById('rh-new'), v = i.value.trim(); if (!v) return;
     S.cfg.rhythms.push({id:uid36(), label:v, area:'crecimiento', target:1, active:true}); saveCfg();
