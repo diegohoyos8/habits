@@ -67,12 +67,32 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 
 /* today head */
 .dayhead{display:flex;flex-direction:column;gap:10px}
+.dayhead h1{font-size:clamp(26px,6vw,34px);line-height:1.1}
 .daynav{display:flex;align-items:center;gap:10px}
 .daynav h1{font-size:clamp(26px,6vw,34px);line-height:1.1;flex:1;min-width:0}
 .navbtn{width:40px;height:40px;flex:0 0 40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:20px;line-height:1}
 .navbtn:disabled{opacity:.35;cursor:default}
 .linkbtn{background:none;border:0;padding:0;color:var(--lake);cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-size:15px;align-self:flex-start}
 .principle{font-style:italic;color:var(--muted);max-width:60ch}
+.wk{display:flex;flex-direction:column;gap:10px}
+.wkhead{display:flex;align-items:center;gap:10px}
+.wkhead .lbl{flex:1;text-align:center;font-size:15px;font-weight:700}
+.wstrip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.wday{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 8px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-variant-numeric:tabular-nums;min-width:0}
+.wday small{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.04em}
+.wday b{font-family:var(--display);font-weight:400;font-size:19px;line-height:1.15}
+.wday .wb{width:60%;height:3px;border-radius:2px;background:var(--cell);overflow:hidden}
+.wday .wb i{display:block;height:100%;background:var(--lake)}
+.wday.today{border-color:var(--lake);border-width:2px}
+.wday[aria-pressed="true"]{background:var(--lake);border-color:var(--lake);color:var(--on-lake)}
+.wday[aria-pressed="true"] small{color:var(--on-lake)}
+.wday[aria-pressed="true"] .wb{background:color-mix(in oklab, var(--on-lake) 30%, transparent)}
+.wday[aria-pressed="true"] .wb i{background:var(--on-lake)}
+.wday:disabled{opacity:.4;cursor:default}
+.colpick{background:none;border:0;padding:2px 4px;cursor:pointer;color:inherit;font:inherit;font-weight:700;border-radius:6px}
+.colpick:disabled{cursor:default}
+.matrix thead th.is-sel .colpick{background:var(--lake);color:var(--on-lake)}
+.matrix thead th.is-sel .colpick small{color:var(--on-lake)}
 .weekfocus{font-size:15px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:baseline}
 .weekfocus span.it{background:var(--lake-soft);border-radius:999px;padding:2px 10px}
 
@@ -311,7 +331,6 @@ table.weeks{border-collapse:collapse;width:100%;font-size:14px;font-variant-nume
     <div class="brand"><b>Semanas contadas</b><span class="meta" id="lifeweeks"></span></div>
     <nav class="tabs" aria-label="Secciones">
       <a href="#hoy" data-v="hoy">Hoy</a>
-      <a href="#semana" data-v="semana">Semana</a>
       <a href="#mes" data-v="mes">Mes</a>
       <a href="#tendencia" data-v="tendencia">Tendencia</a>
       <a href="#ajustes" data-v="ajustes">Ajustes</a>
@@ -345,10 +364,9 @@ const AREAS = {
   trabajo:'Trabajo y dinero', crecimiento:'Crecimiento', creatividad:'Creatividad', hogar:'Hogar', ocio:'Ocio elegido'
 };
 const DEFAULT_CFG = {
-  v:2, birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:10,
+  v:3, birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:10,
   anchors:[
     {id:'meditar', label:'Meditar', hint:'Aunque sean 5 minutos', area:'mente', active:true},
-    {id:'agenda',  label:'Mirar la agenda', hint:'2 minutos: qué importa hoy', area:'mente', active:true},
     {id:'mover',   label:'Moverme', hint:'Ejercicio, caminar, estirar', area:'cuerpo', active:true},
     {id:'comer',   label:'Comer bien', hint:'Comida de verdad, sin prisa', area:'cuerpo', active:true},
     {id:'leer',    label:'Leer con foco', hint:'Un bloque sin pantalla', area:'mente', active:true},
@@ -428,7 +446,7 @@ const stable = v => Array.isArray(v) ? '[' + v.map(stable).join(',') + ']'
 /* ---------- state ---------- */
 const S = {
   cfg: normCfg(null), weeks:{}, months:{},
-  view:'hoy', day:TODAY, week:mondayOf(TODAY), month:monthKey(TODAY),
+  view:'hoy', day:TODAY, month:monthKey(TODAY), editPlan:false, showReview:false,
   ready:false, mode:'connecting', confirm:null,
   cal:{status:'idle'}, todo:{items:[]},
   ocioPick:null, ocioDraft:{h:'', m:'', q:''}
@@ -448,6 +466,11 @@ function normCfg(c){
     o.rhythms = o.rhythms.filter(r => r.id !== 'limpiar');
     if (o.ocioBudgetH === 6) o.ocioBudgetH = 10;
     o.v = 2;
+  }
+  if (!(c.v >= 3)){
+    // v3: "Mirar la agenda" is no longer a daily anchor; the calendar is shown in the day view instead.
+    o.anchors = o.anchors.filter(a => a.id !== 'agenda');
+    o.v = 3;
   }
   if (!Array.isArray(o.chores)) o.chores = structuredClone(DEFAULT_CFG.chores);
   if (!Array.isArray(o.ocioTypes) || !o.ocioTypes.length) o.ocioTypes = structuredClone(DEFAULT_CFG.ocioTypes);
@@ -739,11 +762,9 @@ function agendaBlock(d){
       : `<p class="empty">${isToday ? 'Nada en el calendario. Un día abierto también es una elección.' : 'No había nada en el calendario ese día.'}</p>`;
     body += `<p class="meta" id="cal-at">${calStamp()}</p>`;
   }
-  const an = S.cfg.anchors.find(a => a.id === 'agenda' && a.active);
-  const mark = an && isToday && c.status === 'ok' && !day(d).a.agenda ? '<button class="linkbtn" data-act="anchor" data-id="agenda">Listo, ya miré la agenda</button>' : '';
   return `<section class="block">
     <div class="block-h"><h2>Agenda</h2><span class="hint">${isToday ? 'Lo que ya está comprometido hoy. Elige tus tres cosas alrededor de esto.' : 'Lo que tenías en el calendario ese día.'}</span></div>
-    ${body}${mark}
+    ${body}
   </section>`;
 }
 
@@ -845,19 +866,47 @@ function banner(){
   return m ? `<p class="banner">${m}</p>` : '';
 }
 
+const PLAN_PH = ['Ej.: presentar la propuesta del cliente','Ej.: una tarde entera en la naturaleza con Emilia','Ej.: publicar la primera versión de mi app'];
+function dayProgress(w, d){
+  const an = activeAnchors(); if (!an.length || !w.days[d]) return 0;
+  return an.filter(a => w.days[d].a[a.id]).length / an.length;
+}
+function weekGrid(m, w){
+  const days = weekDays(m), sl = weekSleep(m), oc = weekOcio(m), budget = S.cfg.ocioBudgetH * 60;
+  const row = (label, cells, tot, met) => `<tr><th scope="row">${label}</th>${cells}<td class="tot ${met ? 'met' : ''}">${tot}</td></tr>`;
+  const cell = (act, id, d, on, label, extra = '') => `<td><button class="cell ${extra}" data-act="${act}" data-id="${id}" data-day="${d}" aria-pressed="${on}" aria-label="${label}, ${DOW_LONG[dow(d)]}" ${d > TODAY ? 'disabled' : ''}></button></td>`;
+  const anchorRows = activeAnchors().map(a => {
+    const c = days.filter(d => w.days[d] && w.days[d].a[a.id]).length;
+    return row(esc(a.label), days.map(d => cell('cell', a.id, d, !!(w.days[d] && w.days[d].a[a.id]), esc(a.label))).join(''), `${c}/7`, c >= 5);
+  }).join('');
+  const rhythmRows = activeRhythms().map(r => {
+    const arr = w.rhythms[r.id] || [];
+    return row(esc(r.label), days.map(d => cell('rhythm', r.id, d, arr.includes(d), esc(r.label))).join(''), `${arr.length}/${r.target}`, arr.length >= r.target);
+  }).join('');
+  const chs = activeChores();
+  const choreRows = chs.map(c => {
+    const arr = w.chores[c.id] || [], sched = days.filter(d => c.days.includes(dow(d))).length;
+    return row(esc(c.label), days.map(d => cell('chore', c.id, d, arr.includes(d), esc(c.label) + (c.days.includes(dow(d)) ? ' (toca)' : ''), c.days.includes(dow(d)) ? 'sched' : '')).join(''), `${arr.length}/${sched}`, arr.length >= sched);
+  }).join('');
+  const sleepRow = row('Sueño (h)', days.map(d => `<td class="val">${w.days[d] && typeof w.days[d].sleep === 'number' ? fmtSleep(w.days[d].sleep) : '·'}</td>`).join(''), sl.length ? fmtNum(avg(sl),1) : '–', sl.length && avg(sl) >= S.cfg.sleepTarget);
+  const ocioRow = row('Ocio (min)', days.map(d => { const x = w.days[d]; if (!x || !x.ocio) return '<td class="val">·</td>';
+    return `<td class="val" title="${esc(x.ocioLog.map(ocioEntryText).join(' · '))}">${x.ocio}</td>`; }).join(''), fmtMin(oc), oc && oc <= budget);
+  return `<div class="scroll"><table class="matrix">
+      <thead><tr><th scope="col"><span class="sr">Hábito</span></th>${days.map(d => `<th scope="col" class="${d === TODAY ? 'is-today' : ''} ${d === S.day ? 'is-sel' : ''}"><button class="colpick" data-act="pick-day" data-day="${d}" ${d > TODAY ? 'disabled' : ''} aria-label="Ver el ${DOW_LONG[dow(d)]} ${parse(d).getDate()}">${DOW[dow(d)]}<small>${parse(d).getDate()}</small></button></th>`).join('')}<th scope="col">Total</th></tr></thead>
+      <tbody>
+        <tr class="grp"><th colspan="9">Anclas diarias</th></tr>${anchorRows}${sleepRow}${ocioRow}
+        ${chs.length ? `<tr class="grp"><th colspan="9">Hogar (borde punteado = toca ese día)</th></tr>${choreRows}` : ''}
+        <tr class="grp"><th colspan="9">Ritmos semanales</th></tr>${rhythmRows}
+      </tbody>
+    </table></div>`;
+}
+
 function viewHoy(){
-  const d = S.day, m = mondayOf(d), w = week(m), x = day(d);
+  const d = S.day, m = mondayOf(d), w = week(m), x = day(d), days = weekDays(m);
   const principle = PRINCIPLES[(diffDays('2026-01-01', d) % PRINCIPLES.length + PRINCIPLES.length) % PRINCIPLES.length];
   const focus = w.plan.focus.filter(Boolean);
-  const isSun = dow(d) === 6, isMon = dow(d) === 0;
-  let ritual = '';
-  if (d === TODAY && isSun){
-    ritual = `<div class="ritual"><p><b>Hoy toca el ritual del domingo.</b> Diez minutos: cerrar esta semana y elegir lo importante de la próxima.</p>
-      <div class="row"><button class="pill" data-act="goto-week" data-m="${m}">Cerrar esta semana</button><button class="pill solid" data-act="goto-week" data-m="${addDays(m,7)}">Planear la próxima</button></div></div>`;
-  } else if (d === TODAY && isMon && !focus.length){
-    ritual = `<div class="ritual"><p><b>Empieza la semana.</b> Elige hasta tres cosas que de verdad importan estos siete días.</p>
-      <div class="row"><button class="pill solid" data-act="goto-week" data-m="${m}">Elegir lo importante</button></div></div>`;
-  }
+  const isCurWeek = m === mondayOf(TODAY), pastWeek = m < mondayOf(TODAY);
+  const sc = scoreWeek(m);
   const prev = S.weeks[mondayOf(addDays(d,-1))] && S.weeks[mondayOf(addDays(d,-1))].days[addDays(d,-1)];
   const carry = prev ? prev.three.filter(t => t.t.trim() && !t.d) : [];
   const freeSlots = x.three.filter(t => !t.t.trim()).length;
@@ -879,22 +928,57 @@ function viewHoy(){
     ...todoDone.map(t => t.t)
   ];
 
+  const editingPlan = S.editPlan || !focus.length;
+  const planBlock = editingPlan ? `
+    <div class="plan3">${[0,1,2].map(i => `<label class="sr" for="pf-${i}">Importante ${i+1}</label><input type="text" id="pf-${i}" data-bind="plan" data-i="${i}" value="${esc(w.plan.focus[i])}" maxlength="80" placeholder="${PLAN_PH[i]}">`).join('')}</div>
+    <div class="stack">
+      <label for="pskip">Esta semana dejo ir, a propósito</label>
+      <input type="text" id="pskip" data-bind="skip" value="${esc(w.plan.skip)}" maxlength="120" placeholder="Ej.: ordenar el garaje, el curso nuevo, responder todo al instante">
+      <span class="hint">Elegir de antemano en qué quedarte corto es una decisión, no un fracaso.</span>
+    </div>
+    ${focus.length ? '<button class="pill" data-act="plan-done">Listo</button>' : ''}`
+    : `<p class="weekfocus">${focus.map(f => `<span class="it">${esc(f)}</span>`).join('')}</p>
+    ${w.plan.skip ? `<p class="meta">Dejo ir: ${esc(w.plan.skip)}</p>` : ''}
+    <button class="linkbtn" data-act="plan-edit">Editar</button>`;
+
+  const nm = addDays(mondayOf(TODAY), 7), nw = week(nm);
+  const ritual = d === TODAY && dow(d) === 6 ? `<div class="ritual">
+      <p><b>Ritual del domingo.</b> Diez minutos: cierra esta semana al final de la página y elige lo importante de la próxima.</p>
+      <div class="plan3">${[0,1,2].map(i => `<label class="sr" for="pn-${i}">Importante de la próxima semana ${i+1}</label><input type="text" id="pn-${i}" data-bind="plan-next" data-i="${i}" value="${esc(nw.plan.focus[i])}" maxlength="80" placeholder="${i ? 'Otra cosa importante' : 'Lo importante de la próxima semana'}">`).join('')}</div>
+      <label class="sr" for="pnskip">La próxima semana dejo ir</label>
+      <input type="text" id="pnskip" data-bind="skip-next" value="${esc(nw.plan.skip)}" maxlength="120" placeholder="La próxima semana dejo ir…">
+      <div class="row"><button class="pill" data-act="to-review">Ir al cierre de esta semana</button></div>
+    </div>` : '';
+  const hasReview = Object.values(w.review).some(v => String(v || '').trim());
+  const showReview = S.showReview || pastWeek || dow(d) >= 4 || hasReview;
+
   return `
   <section class="dayhead">
-    <div class="daynav">
-      <button class="navbtn" data-act="day" data-n="-1" aria-label="Día anterior" ${d <= MIN_MONDAY ? 'disabled' : ''}>‹</button>
-      <h1>${d === TODAY ? 'Hoy, ' + fmtLong(d).toLowerCase() : fmtLong(d)}</h1>
-      <button class="navbtn" data-act="day" data-n="1" aria-label="Día siguiente" ${d >= TODAY ? 'disabled' : ''}>›</button>
-    </div>
+    <h1>${d === TODAY ? 'Hoy, ' + fmtLong(d).toLowerCase() : fmtLong(d)}</h1>
     ${d !== TODAY ? '<button class="linkbtn" data-act="day-today">Volver a hoy</button>' : ''}
     <p class="principle">${esc(principle)}</p>
-    ${focus.length ? `<p class="weekfocus"><span class="label">Esta semana importa</span>${focus.map(f => `<span class="it">${esc(f)}</span>`).join('')}</p>` : ''}
+  </section>
+
+  <section class="wk" aria-label="Semana">
+    <div class="wkhead">
+      <button class="navbtn" data-act="week" data-n="-1" aria-label="Semana anterior" ${m <= MIN_MONDAY ? 'disabled' : ''}>‹</button>
+      <span class="lbl">${isCurWeek ? 'Esta semana' : 'Semana'} · ${parse(days[0]).getDate()} ${fmtDM(days[0]).split(' ')[1]} – ${fmtDM(days[6])}</span>
+      <button class="navbtn" data-act="week" data-n="1" aria-label="Semana siguiente" ${isCurWeek ? 'disabled' : ''}>›</button>
+    </div>
+    <div class="wstrip">${days.map(dd => `<button class="wday ${dd === TODAY ? 'today' : ''}" data-act="pick-day" data-day="${dd}" aria-pressed="${dd === d}" ${dd > TODAY ? 'disabled' : ''} aria-label="${DOW_LONG[dow(dd)]} ${parse(dd).getDate()}${dd === TODAY ? ', hoy' : ''}">
+      <small>${DOW[dow(dd)]}</small><b>${parse(dd).getDate()}</b><span class="wb"><i style="width:${Math.round(dayProgress(w, dd) * 100)}%"></i></span></button>`).join('')}</div>
+    <p class="meta">Balance ${sc ? pct(sc.overall) + (sc.complete ? '' : ' (en curso)') : '–'} · Sueño ${sl.length ? fmtNum(avg(sl),1) + ' h' : '–'} · Ocio ${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h</p>
+  </section>
+
+  <section class="block planbox">
+    <div class="block-h"><h2>Lo importante de la semana</h2>${editingPlan ? '<span class="hint">Hasta tres. Se quedan aquí arriba toda la semana para que no se pierdan.</span>' : ''}</div>
+    ${planBlock}
   </section>
   ${ritual}
   ${agendaBlock(d)}
 
   <section class="block">
-    <div class="block-h"><h2>Lo importante hoy</h2><span class="hint">Máximo tres. Si entra algo nuevo, algo sale.</span></div>
+    <div class="block-h"><h2>Lo importante ${d === TODAY ? 'hoy' : 'ese día'}</h2><span class="hint">Máximo tres. Si entra algo nuevo, algo sale.</span></div>
     <ul class="three">
       ${x.three.slice(0,3).map((t,i) => `<li class="${t.d ? 'is-done' : ''}">
         <button class="check" data-act="three" data-i="${i}" aria-pressed="${!!t.d}" aria-label="Marcar como hecho">✓</button>
@@ -938,8 +1022,15 @@ function viewHoy(){
     <p class="meta">${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h esta semana${ocioByText(ocBy) ? ' · ' + ocioByText(ocBy) : ''}${ocW > budget ? '. Pasaste el límite: es un dato, no una falta.' : ''}</p>
   </section>
 
+  ${allChores.length ? `<section class="block">
+    <div class="block-h"><h2>Hogar</h2><span class="hint">${allChores.map(c => `${esc(c.label)}: ${choreDaysText(c)}`).join(' · ')}</span></div>
+    ${chores.length ? `<ul class="rhythms">${chores.map(({c, doneToday, note}) => `<li><button class="rhythm" data-act="chore" data-id="${c.id}" data-day="${d}" aria-pressed="${doneToday}">
+        <span class="r-label">${esc(c.label)}<span class="r-area">${note}</span></span></button></li>`).join('')}</ul>`
+      : `<p class="empty">${d === TODAY ? 'Hoy' : 'Ese día'} no toca nada de la casa.${nextChore(d) ? ' Lo próximo: ' + esc(nextChore(d)) + '.' : ''}</p>`}
+  </section>` : ''}
+
   <section class="block">
-    <div class="block-h"><h2>Esta semana</h2><span class="hint">Sin día fijo. Toca lo que hiciste ${d === TODAY ? 'hoy' : 'este día'}; los puntos son la meta semanal.</span></div>
+    <div class="block-h"><h2>Ritmos de la semana</h2><span class="hint">Sin día fijo. Toca lo que hiciste ${d === TODAY ? 'hoy' : 'ese día'}; los puntos son la meta semanal.</span></div>
     <ul class="rhythms">
       ${rh.map(r => { const arr = w.rhythms[r.id] || [], on = arr.includes(d), n = arr.length;
         return `<li><button class="rhythm ${n >= r.target ? 'met' : ''}" data-act="rhythm" data-id="${r.id}" data-day="${d}" aria-pressed="${on}">
@@ -947,13 +1038,6 @@ function viewHoy(){
           <span class="dots" aria-label="${n} de ${r.target}">${dots(n, r.target)}</span></button></li>`; }).join('')}
     </ul>
   </section>
-
-  ${allChores.length ? `<section class="block">
-    <div class="block-h"><h2>Hogar</h2><span class="hint">${allChores.map(c => `${esc(c.label)}: ${choreDaysText(c)}`).join(' · ')}</span></div>
-    ${chores.length ? `<ul class="rhythms">${chores.map(({c, doneToday, note}) => `<li><button class="rhythm" data-act="chore" data-id="${c.id}" data-day="${d}" aria-pressed="${doneToday}">
-        <span class="r-label">${esc(c.label)}<span class="r-area">${note}</span></span></button></li>`).join('')}</ul>`
-      : `<p class="empty">Hoy no toca nada de la casa.${nextChore(d) ? ' Lo próximo: ' + esc(nextChore(d)) + '.' : ''}</p>`}
-  </section>` : ''}
 
   ${up.length ? `<section class="block">
     <div class="block-h"><h2>Fechas clave</h2><span class="hint">Lo que vence en los próximos diez días.</span></div>
@@ -980,7 +1064,7 @@ function viewHoy(){
   </section>
 
   <section class="block">
-    <div class="block-h"><h2>Hecho ${d === TODAY ? 'hoy' : 'este día'}</h2><span class="hint">Cierra el día con lo que sí hiciste.</span></div>
+    <div class="block-h"><h2>Hecho ${d === TODAY ? 'hoy' : 'ese día'}</h2><span class="hint">Cierra el día con lo que sí hiciste.</span></div>
     ${autoDone.length || x.done.length ? `<ul class="donelist">
       ${autoDone.map(t => `<li class="auto">${esc(t)}</li>`).join('')}
       ${x.done.map((t,i) => `<li>${esc(t)}<button class="x" data-act="done-del" data-i="${i}" aria-label="Quitar">×</button></li>`).join('')}
@@ -994,8 +1078,23 @@ function viewHoy(){
       <label for="note">Una línea para recordar</label>
       <textarea id="note" data-bind="note" rows="2" maxlength="600" placeholder="Algo que dijo Emilia, un momento, una idea…">${esc(x.note)}</textarea>
     </div>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>La semana de un vistazo</h2><span class="hint">Toca una casilla para marcar o desmarcar ese día, o la letra del día para verlo arriba.</span></div>
+    ${weekGrid(m, w)}
+  </section>
+
+  <section class="block" id="cierre">
+    <div class="block-h"><h2>Cierre de semana</h2><span class="hint">Cinco minutos el domingo. Nadie lo califica.</span></div>
+    ${showReview ? `
+    <div class="stack"><label for="rev-emilia">Un momento con Emilia que quiero recordar</label><textarea id="rev-emilia" data-bind="review" data-k="emilia" maxlength="600">${esc(w.review.emilia)}</textarea></div>
+    <div class="stack"><label for="rev-worked">Qué funcionó</label><textarea id="rev-worked" data-bind="review" data-k="worked" maxlength="600">${esc(w.review.worked)}</textarea></div>
+    <div class="stack"><label for="rev-adjust">Qué ajusto para la próxima</label><textarea id="rev-adjust" data-bind="review" data-k="adjust" maxlength="600">${esc(w.review.adjust)}</textarea></div>`
+    : '<button class="linkbtn" data-act="show-review">Escribir el cierre ahora</button>'}
   </section>`;
 }
+
 function dots(n, t){
   let s = '';
   for (let i = 0; i < t; i++) s += `<i class="dot ${i < n ? 'on' : ''}"></i>`;
@@ -1010,76 +1109,6 @@ function dateRow(u){
       <small>${whenText(u.dd)}${kd.amount ? ' · ' + esc(kd.amount) : ''}</small></span>
     <button class="pill" data-act="kd" data-id="${kd.id}" data-k="${u.k}" aria-pressed="${u.ok}">${kdLabel(kd, u.ok)}</button>
   </li>`;
-}
-
-function viewSemana(){
-  const m = S.week, w = week(m), days = weekDays(m), sc = scoreWeek(m);
-  const sl = weekSleep(m), oc = weekOcio(m), budget = S.cfg.ocioBudgetH * 60;
-  const rh = activeRhythms(), an = activeAnchors();
-  const isNext = m > mondayOf(TODAY), isCur = m === mondayOf(TODAY);
-  const title = `${parse(days[0]).getDate()} ${fmtDM(days[0]).split(' ')[1]} – ${fmtDM(days[6])}`;
-  const row = (label, cells, tot, met) => `<tr><th scope="row">${label}</th>${cells}<td class="tot ${met ? 'met' : ''}">${tot}</td></tr>`;
-  const anchorRows = an.map(a => {
-    const c = days.filter(d => w.days[d] && w.days[d].a[a.id]).length;
-    return row(esc(a.label), days.map(d => `<td><button class="cell" data-act="cell" data-id="${a.id}" data-day="${d}" aria-pressed="${!!(w.days[d] && w.days[d].a[a.id])}" aria-label="${esc(a.label)}, ${DOW_LONG[dow(d)]}" ${d > TODAY ? 'disabled' : ''}></button></td>`).join(''), `${c}/7`, c >= 5);
-  }).join('');
-  const rhythmRows = rh.map(r => {
-    const arr = w.rhythms[r.id] || [];
-    return row(esc(r.label), days.map(d => `<td><button class="cell" data-act="rhythm" data-id="${r.id}" data-day="${d}" aria-pressed="${arr.includes(d)}" aria-label="${esc(r.label)}, ${DOW_LONG[dow(d)]}" ${d > TODAY ? 'disabled' : ''}></button></td>`).join(''), `${arr.length}/${r.target}`, arr.length >= r.target);
-  }).join('');
-  const chs = activeChores();
-  const choreRows = chs.map(c => {
-    const arr = w.chores[c.id] || [], sched = days.filter(d => c.days.includes(dow(d))).length;
-    return row(esc(c.label), days.map(d => `<td><button class="cell ${c.days.includes(dow(d)) ? 'sched' : ''}" data-act="chore" data-id="${c.id}" data-day="${d}" aria-pressed="${arr.includes(d)}" aria-label="${esc(c.label)}, ${DOW_LONG[dow(d)]}${c.days.includes(dow(d)) ? ' (toca)' : ''}" ${d > TODAY ? 'disabled' : ''}></button></td>`).join(''), `${arr.length}/${sched}`, arr.length >= sched);
-  }).join('');
-  const sleepRow = row('Sueño (h)', days.map(d => `<td class="val">${w.days[d] && typeof w.days[d].sleep === 'number' ? fmtSleep(w.days[d].sleep) : '·'}</td>`).join(''), sl.length ? fmtNum(avg(sl),1) : '–', sl.length && avg(sl) >= S.cfg.sleepTarget);
-  const ocioRow = row('Ocio (min)', days.map(d => { const x = w.days[d]; if (!x || !x.ocio) return '<td class="val">·</td>';
-    const t = esc(x.ocioLog.map(ocioEntryText).join(' · '));
-    return `<td class="val" title="${t}">${x.ocio}</td>`; }).join(''), fmtMin(oc), oc && oc <= budget);
-
-  return `
-  <section class="dayhead">
-    <div class="weeknav">
-      <button class="navbtn" data-act="week" data-n="-1" aria-label="Semana anterior" ${m <= MIN_MONDAY ? 'disabled' : ''}>‹</button>
-      <h1>${isNext ? 'Próxima semana' : isCur ? 'Esta semana' : 'Semana'}<br><span class="hint" style="font-family:var(--body);font-size:16px">${title}</span></h1>
-      <button class="navbtn" data-act="week" data-n="1" aria-label="Semana siguiente" ${m >= MAX_MONDAY ? 'disabled' : ''}>›</button>
-    </div>
-    ${!isCur ? '<button class="linkbtn" data-act="week-now">Ir a esta semana</button>' : ''}
-    ${!isNext ? `<div class="stats">
-      <div class="stat"><b>${sc ? pct(sc.overall) : '–'}</b><span>balance${sc && !sc.complete ? ' (en curso)' : ''}</span></div>
-      <div class="stat"><b>${sl.length ? fmtNum(avg(sl),1) + ' h' : '–'}</b><span>sueño promedio</span></div>
-      <div class="stat"><b>${fmtMin(oc)}</b><span>ocio, límite ${fmtNum(S.cfg.ocioBudgetH,1)} h${ocioByText(weekOcioBy(m)) ? '<br>' + ocioByText(weekOcioBy(m)) : ''}</span></div>
-    </div>` : ''}
-  </section>
-
-  <section class="block planbox">
-    <div class="block-h"><h2>Lo importante de la semana</h2><span class="hint">Hasta tres. Aparecen arriba en Hoy para que no se pierdan.</span></div>
-    <div class="plan3">${[0,1,2].map(i => `<label class="sr" for="pf-${i}">Importante ${i+1}</label><input type="text" id="pf-${i}" data-bind="plan" data-i="${i}" value="${esc(w.plan.focus[i])}" maxlength="80" placeholder="${['Ej.: presentar la propuesta del cliente','Ej.: una tarde entera en la naturaleza con Emilia','Ej.: publicar la primera versión de mi app'][i]}">`).join('')}</div>
-    <div class="stack">
-      <label for="pskip">Esta semana dejo ir, a propósito</label>
-      <input type="text" id="pskip" data-bind="skip" value="${esc(w.plan.skip)}" maxlength="120" placeholder="Ej.: ordenar el garaje, el curso nuevo, responder todo al instante">
-      <span class="hint">Elegir de antemano en qué quedarte corto es una decisión, no un fracaso.</span>
-    </div>
-  </section>
-
-  ${!isNext ? `<section class="block">
-    <div class="block-h"><h2>La semana de un vistazo</h2><span class="hint">Toca una casilla para marcar o desmarcar ese día.</span></div>
-    <div class="scroll"><table class="matrix">
-      <thead><tr><th scope="col"><span class="sr">Hábito</span></th>${days.map(d => `<th scope="col" class="${d === TODAY ? 'is-today' : ''}">${DOW[dow(d)]}<small>${parse(d).getDate()}</small></th>`).join('')}<th scope="col">Total</th></tr></thead>
-      <tbody>
-        <tr class="grp"><th colspan="9">Anclas diarias</th></tr>${anchorRows}${sleepRow}${ocioRow}
-        ${chs.length ? `<tr class="grp"><th colspan="9">Hogar (borde punteado = toca ese día)</th></tr>${choreRows}` : ''}
-        <tr class="grp"><th colspan="9">Ritmos semanales</th></tr>${rhythmRows}
-      </tbody>
-    </table></div>
-  </section>
-
-  <section class="block">
-    <div class="block-h"><h2>Cierre de semana</h2><span class="hint">Cinco minutos el domingo. Nadie lo califica.</span></div>
-    <div class="stack"><label for="rev-emilia">Un momento con Emilia que quiero recordar</label><textarea id="rev-emilia" data-bind="review" data-k="emilia" maxlength="600">${esc(w.review.emilia)}</textarea></div>
-    <div class="stack"><label for="rev-worked">Qué funcionó</label><textarea id="rev-worked" data-bind="review" data-k="worked" maxlength="600">${esc(w.review.worked)}</textarea></div>
-    <div class="stack"><label for="rev-adjust">Qué ajusto para la próxima</label><textarea id="rev-adjust" data-bind="review" data-k="adjust" maxlength="600">${esc(w.review.adjust)}</textarea></div>
-  </section>` : ''}`;
 }
 
 function viewMes(){
@@ -1303,7 +1332,7 @@ function viewAjustes(){
   </section>`;
 }
 
-const VIEWS = {hoy:viewHoy, semana:viewSemana, mes:viewMes, tendencia:viewTendencia, ajustes:viewAjustes};
+const VIEWS = {hoy:viewHoy, mes:viewMes, tendencia:viewTendencia, ajustes:viewAjustes};
 
 /* ---------- render ---------- */
 function render(){
@@ -1328,11 +1357,27 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const a = b.dataset.act, id = b.dataset.id;
-  const nav = ['day','day-today','week','week-now','month','goto-week','confirm-no','cal-once','cal-perms'];
+  const nav = ['day-today','pick-day','week','month','goto-week','confirm-no','cal-once','cal-perms','to-review','show-review','plan-edit','plan-done'];
   if (!canEdit() && !nav.includes(a)) return;
   switch (a){
-    case 'day': { const n = addDays(S.day, +b.dataset.n); if (n <= TODAY && n >= MIN_MONDAY) S.day = n; ensureCalWatch(); break; }
-    case 'day-today': S.day = TODAY; ensureCalWatch(); break;
+    case 'pick-day': {
+      const n = b.dataset.day; if (!(n <= TODAY && n >= MIN_MONDAY)) break;
+      if (mondayOf(n) !== mondayOf(S.day)){ S.editPlan = false; S.showReview = false; }
+      S.day = n; ensureCalWatch();
+      if (b.classList.contains('colpick')) setTimeout(() => window.scrollTo({top:0, behavior:'smooth'}), 0);
+      break;
+    }
+    case 'day-today': S.day = TODAY; S.editPlan = false; S.showReview = false; ensureCalWatch(); break;
+    case 'week': {
+      // Same weekday in the previous or next week, never past today.
+      let n = addDays(S.day, 7 * b.dataset.n); if (n > TODAY) n = TODAY;
+      if (n >= MIN_MONDAY){ S.day = n; S.editPlan = false; S.showReview = false; ensureCalWatch(); }
+      break;
+    }
+    case 'plan-edit': S.editPlan = true; break;
+    case 'plan-done': S.editPlan = false; break;
+    case 'show-review': S.showReview = true; break;
+    case 'to-review': { const el = document.getElementById('cierre'); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); return; }
     case 'cal-once': S.cal = {status:'loading'}; calRetried = true; calOnce(S.day); break;
     case 'cal-perms':
       if (!perms) return;
@@ -1341,10 +1386,13 @@ document.addEventListener('click', e => {
         if (st !== 'denied'){ calKey = null; ensureCalWatch(); render(); }
       }, () => toast('Abre el menú Permisos de esta página y activa Google Calendar.'));
       return;
-    case 'week': { const n = addDays(S.week, 7 * b.dataset.n); if (n >= MIN_MONDAY && n <= MAX_MONDAY) S.week = n; break; }
-    case 'week-now': S.week = mondayOf(TODAY); break;
     case 'month': { const n = shiftMonth(S.month, +b.dataset.n); if (n >= MIN_MONTH && n <= MAX_MONTH) S.month = n; break; }
-    case 'goto-week': S.week = b.dataset.m; if (location.hash !== '#semana'){ location.hash = 'semana'; return; } window.scrollTo(0,0); break;
+    case 'goto-week': {
+      const m = b.dataset.m; if (m < MIN_MONDAY) break;
+      S.day = addDays(m, 6) > TODAY ? TODAY : addDays(m, 6); S.editPlan = false; S.showReview = false; ensureCalWatch();
+      if (location.hash !== '#hoy'){ location.hash = 'hoy'; return; }
+      window.scrollTo(0,0); break;
+    }
     case 'three': { const t = day(S.day).three[+b.dataset.i]; t.d = !t.d; saveWeek(mondayOf(S.day)); break; }
     case 'carry': {
       const pd = addDays(S.day, -1), prev = week(mondayOf(pd)).days[pd]; if (!prev) break;
@@ -1406,9 +1454,11 @@ document.addEventListener('input', e => {
   switch (k){
     case 'three': day(S.day).three[+el.dataset.i].t = el.value; saveWeek(mondayOf(S.day)); break;
     case 'note': day(S.day).note = el.value; saveWeek(mondayOf(S.day)); break;
-    case 'plan': week(S.week).plan.focus[+el.dataset.i] = el.value; saveWeek(S.week); break;
-    case 'skip': week(S.week).plan.skip = el.value; saveWeek(S.week); break;
-    case 'review': week(S.week).review[el.dataset.k] = el.value; saveWeek(S.week); break;
+    case 'plan': { const m = mondayOf(S.day); week(m).plan.focus[+el.dataset.i] = el.value; saveWeek(m); break; }
+    case 'skip': { const m = mondayOf(S.day); week(m).plan.skip = el.value; saveWeek(m); break; }
+    case 'review': { const m = mondayOf(S.day); week(m).review[el.dataset.k] = el.value; saveWeek(m); break; }
+    case 'plan-next': { const m = addDays(mondayOf(TODAY), 7); week(m).plan.focus[+el.dataset.i] = el.value; saveWeek(m); break; }
+    case 'skip-next': { const m = addDays(mondayOf(TODAY), 7); week(m).plan.skip = el.value; saveWeek(m); break; }
     case 'mnote': month(S.month).review.note = el.value; saveMonth(S.month); break;
     case 'an-label': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a && el.value.trim()){ a.label = el.value; saveCfg(); } break; }
     case 'ocio-draft': S.ocioDraft[el.dataset.k] = el.value; break;
@@ -1487,7 +1537,6 @@ document.addEventListener('visibilitychange', () => {
   const prev = TODAY; setToday();
   if (prev !== TODAY){
     if (S.day === prev){ S.day = TODAY; ensureCalWatch(); }
-    if (S.week === mondayOf(prev)) S.week = mondayOf(TODAY);
     if (S.month === monthKey(prev)) S.month = monthKey(TODAY);
     render();
   }

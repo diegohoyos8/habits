@@ -19,7 +19,7 @@ Da estructura sin convertir la vida en una lista de pendientes infinita.
 
 | Ritmo | Qué incluye |
 |---|---|
-| **Anclas diarias** | Meditar, mirar la agenda, moverme, comer bien, leer con foco, jugar con Emilia. Además: horas de sueño y minutos de ocio. |
+| **Anclas diarias** | Meditar, moverme, comer bien, leer con foco, jugar con Emilia. Además: horas de sueño y ocio. |
 | **Ritmos semanales** (sin día fijo, con meta de veces por semana) | Trabajo profundo (5), revisar finanzas (1), llamar a mis papás y mandar fotos de Emilia (2), escribir a un amigo lejos (2), amigos cerca (1), naturaleza (1), proyecto creativo (2), perfil profesional (CV, LinkedIn, cursos de IA) (2), apps de Claude (2), hacer la compra (1). |
 | **Hogar con día fijo** | Aspirar, trapear y limpiar el WC los lunes y jueves. Si un día no se pudo, se marca otro día de la misma semana. |
 | **Pendientes varios** | Una lista sencilla, sin fecha, para cosas sueltas. |
@@ -29,8 +29,7 @@ Todo se puede ajustar en **Ajustes**: activar o pausar, renombrar, cambiar metas
 
 ### Secciones
 
-- **Hoy**: la agenda del día desde Google Calendar, las tres prioridades, las anclas, sueño y ocio por tipo, lo que toca de la casa, los ritmos de la semana, fechas próximas, pendientes varios, lo hecho y una línea para recordar.
-- **Semana**: lo importante de la semana, lo que dejas ir, la cuadrícula de los siete días y el cierre del domingo.
+- **Hoy** (día y semana juntos): la tira de los 7 días para moverte entre ellos, lo importante de la semana, la agenda de Google Calendar, las tres prioridades, las anclas, sueño y ocio, lo que toca de la casa, los ritmos, fechas próximas, pendientes varios, lo hecho, la cuadrícula de la semana y el cierre del domingo.
 - **Mes**: calendario con pagos y cobros, y la revisión de finanzas.
 - **Tendencia**: el año en semanas, la línea de balance de las últimas 12 semanas y el mapa por área.
 - **Ajustes**: fechas de nacimiento (tuya y de Emilia), metas de sueño y ocio, anclas y ritmos.
