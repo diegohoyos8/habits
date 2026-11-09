@@ -21,7 +21,7 @@ Da estructura sin convertir la vida en una lista de pendientes infinita.
 |---|---|
 | **Anclas diarias** | Meditar, mirar la agenda, moverme, comer bien, leer con foco, jugar con Emilia. Además: horas de sueño y minutos de ocio. |
 | **Ritmos semanales** (sin día fijo, con meta de veces por semana) | Trabajo profundo (5), revisar finanzas (1), llamar a mis papás y mandar fotos de Emilia (2), escribir a un amigo lejos (2), amigos cerca (1), naturaleza (1), proyecto creativo (2), perfil profesional (CV, LinkedIn, cursos de IA) (2), apps de Claude (2), hacer la compra (1). |
-| **Hogar con día fijo** | Aspirar (miércoles y viernes), trapear (viernes), limpiar el WC (jueves). Si un día no se pudo, se marca otro día de la misma semana. |
+| **Hogar con día fijo** | Aspirar, trapear y limpiar el WC los lunes y jueves. Si un día no se pudo, se marca otro día de la misma semana. |
 | **Pendientes varios** | Una lista sencilla, sin fecha, para cosas sueltas. |
 | **Mensual** | Fechas clave que se repiten cada mes (pagos y cobros de renta, créditos, tarjetas) y una revisión mensual de finanzas. |
 
