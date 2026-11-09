@@ -13,7 +13,7 @@ Da estructura sin convertir la vida en una lista de pendientes infinita.
 - **Elegir en qué quedarse corto.** Cada semana anotas qué dejas ir a propósito.
 - **Lista de lo hecho.** El día se cierra con lo que sí hiciste.
 - **Tendencia, no rachas.** Una semana sin registro queda en blanco, no en cero. Lo que se mide es el equilibrio entre áreas a lo largo de las semanas.
-- **Ocio elegido.** No se prohíbe. Se anota qué fue (película o serie, videojuego) y se mantiene bajo un límite de 10 h por semana, sin culpa.
+- **Ocio elegido.** No se prohíbe. Cada vez se anota el tipo (película, serie, videojuego, otro o los que agregues), la duración real y qué fue, bajo un límite de 10 h por semana y sin culpa.
 
 ## Cómo está organizada
 

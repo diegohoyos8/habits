@@ -139,11 +139,21 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .extra{font-size:12px;color:var(--lake);font-weight:700}
 
 /* ocio by type */
-.ocio-rows{display:flex;flex-direction:column;gap:6px}
-.orow{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.orow>span{font-size:15px}
-.orow .stepper output{min-width:64px}
-#ocio-que{width:100%;min-width:0}
+.ocio-log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ocio-log li{display:flex;align-items:baseline;gap:10px;padding:7px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.ocio-log li:last-child{border-bottom:1px solid var(--line)}
+.otag{font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--lake-soft);color:var(--lake)}
+.ocio-log .dur{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ocio-log .que{flex:1;min-width:0;color:var(--muted);overflow-wrap:anywhere}
+.ocio-log .x{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0 4px}
+.ocio-form{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.ocio-form .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.dur-in{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.dur-in input{width:64px}
+#oq{flex:1 1 180px;min-width:0}
+.ocio-form .btn{align-self:flex-start}
+.sleepbox{display:flex;flex-direction:column;gap:8px}
+.sleepbox h3{font-size:15px;font-weight:700}
 
 /* todo */
 .todo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
@@ -362,9 +372,16 @@ const DEFAULT_CFG = {
     {id:'trapear', label:'Trapear', days:[0,3], active:true},
     {id:'wc',      label:'Limpiar el WC', days:[0,3], active:true}
   ],
+  // Options offered when logging leisure; editable in Ajustes.
+  ocioTypes:[
+    {id:'pelicula', label:'Película'},
+    {id:'serie', label:'Serie'},
+    {id:'videojuego', label:'Videojuego'},
+    {id:'otro', label:'Otro'}
+  ],
   keyDates:[]
 };
-const OCIO_TYPES = [['serie','Película o serie'],['juego','Videojuego']];
+
 const THREE_PH = ['Lo que haría que hoy valga la pena','Algo de trabajo que mueve la aguja','Algo para ti o para tu familia'];
 const SLEEP_OPTS = [[5,'≤5'],[6,'6'],[6.5,'6½'],[7,'7'],[7.5,'7½'],[8,'8'],[9,'9+']];
 const DOW = ['L','M','X','J','V','S','D'];
@@ -413,7 +430,8 @@ const S = {
   cfg: normCfg(null), weeks:{}, months:{},
   view:'hoy', day:TODAY, week:mondayOf(TODAY), month:monthKey(TODAY),
   ready:false, mode:'connecting', confirm:null,
-  cal:{status:'idle'}, todo:{items:[]}
+  cal:{status:'idle'}, todo:{items:[]},
+  ocioPick:null, ocioDraft:{h:'', m:'', q:''}
 };
 
 function normCfg(c){
@@ -432,14 +450,30 @@ function normCfg(c){
     o.v = 2;
   }
   if (!Array.isArray(o.chores)) o.chores = structuredClone(DEFAULT_CFG.chores);
+  if (!Array.isArray(o.ocioTypes) || !o.ocioTypes.length) o.ocioTypes = structuredClone(DEFAULT_CFG.ocioTypes);
   return o;
 }
-function newDay(){ return {a:{}, three:[{t:'',d:false},{t:'',d:false},{t:'',d:false}], done:[], note:''}; }
+function newDay(){ return {a:{}, three:[{t:'',d:false},{t:'',d:false},{t:'',d:false}], done:[], note:'', ocioLog:[]}; }
+const ocioSum = x => x.ocioLog.reduce((s, e) => s + (e.min || 0), 0);
 function normWeek(w){
   w = structuredClone(w || {});
   w.days = w.days && typeof w.days === 'object' ? w.days : {};
   for (const k in w.days){
-    const x = Object.assign(newDay(), w.days[k]);
+    const src = w.days[k] || {};
+    const x = Object.assign(newDay(), src);
+    if (!Array.isArray(src.ocioLog)){
+      // Older days used fixed 30-minute counters; turn them into log entries.
+      const t = src.ocioT || {}, log = [];
+      if (t.serie) log.push({id:'m1', t:'serie', tl:'Película o serie', min:t.serie, q:''});
+      if (t.juego) log.push({id:'m2', t:'videojuego', tl:'Videojuego', min:t.juego, q:''});
+      const rest = Math.max(0, (src.ocio || 0) - (t.serie || 0) - (t.juego || 0));
+      if (rest) log.push({id:'m3', t:'otro', tl:'Otro', min:rest, q:''});
+      if (log.length && src.ocioQue) log[0].q = src.ocioQue;
+      x.ocioLog = log;
+    }
+    delete x.ocioT; delete x.ocioQue;
+    x.ocioLog = x.ocioLog.filter(e => e && e.min > 0);
+    if (x.ocioLog.length) x.ocio = ocioSum(x);
     if (!Array.isArray(x.three)) x.three = newDay().three;
     while (x.three.length < 3) x.three.push({t:'',d:false});
     if (!Array.isArray(x.done)) x.done = [];
@@ -470,10 +504,7 @@ function normTodo(t){
   const items = t && Array.isArray(t.items) ? t.items : [];
   return {items: items.filter(i => i && typeof i.t === 'string' && i.id).map(i => ({id:String(i.id), t:i.t, done:!!i.done, created:i.created || '', doneOn:i.doneOn || ''}))};
 }
-function ocioParts(x){
-  const t = x.ocioT || {}, serie = t.serie || 0, juego = t.juego || 0;
-  return {serie, juego, otro: Math.max(0, (x.ocio || 0) - serie - juego)};
-}
+const ocioLabel = e => { const t = S.cfg.ocioTypes.find(o => o.id === e.t); return t ? t.label : (e.tl || 'Otro'); };
 
 /* ---------- storage (db capability, private per person) ---------- */
 let db = null, base = null;
@@ -749,18 +780,16 @@ function scoreWeek(m){
 }
 function recentMondays(n){ const cur = mondayOf(TODAY); return Array.from({length:n}, (_,i) => addDays(cur, -7*(n-1-i))); }
 function weekOcioBy(m){
-  const w = S.weeks[m], out = {serie:0, juego:0, otro:0};
+  const w = S.weeks[m], out = new Map();
   if (!w) return out;
-  for (const d of weekDays(m)){ if (!w.days[d]) continue; const p = ocioParts(w.days[d]); out.serie += p.serie; out.juego += p.juego; out.otro += p.otro; }
+  for (const d of weekDays(m)){
+    const x = w.days[d]; if (!x || !Array.isArray(x.ocioLog)) continue;
+    for (const e of x.ocioLog){ const l = ocioLabel(e); out.set(l, (out.get(l) || 0) + e.min); }
+  }
   return out;
 }
-function ocioByText(o){
-  const parts = [];
-  if (o.serie) parts.push(`películas y series ${fmtMin(o.serie)}`);
-  if (o.juego) parts.push(`videojuegos ${fmtMin(o.juego)}`);
-  if (o.otro) parts.push(`sin tipo ${fmtMin(o.otro)}`);
-  return parts.join(' · ');
-}
+const ocioByText = map => [...map].sort((a, b) => b[1] - a[1]).map(([l, v]) => `${esc(l.toLowerCase())} ${fmtMin(v)}`).join(' · ');
+const ocioEntryText = e => `${ocioLabel(e)} ${fmtMin(e.min)}${e.q ? ' (' + e.q + ')' : ''}`;
 function choreDaysText(c){ return c.days.slice().sort().map(i => DOW_LONG[i].slice(0,3)).join(' y '); }
 /** Chores to show on day d: scheduled that day, done that day, or still owed from earlier in the week. */
 function choresFor(d){
@@ -836,7 +865,8 @@ function viewHoy(){
 
   const sl = weekSleep(m), ocW = weekOcio(m), budget = S.cfg.ocioBudgetH * 60;
   const ocPct = budget ? Math.min(100, ocW / budget * 100) : 0;
-  const op = ocioParts(x), ocBy = weekOcioBy(m);
+  const ocBy = weekOcioBy(m);
+  const pick = S.cfg.ocioTypes.some(t => t.id === S.ocioPick) ? S.ocioPick : S.cfg.ocioTypes[0].id, dr = S.ocioDraft;
   const up = upcoming(d);
   const chores = choresFor(d), allChores = activeChores();
   const todoOpen = S.todo.items.filter(t => !t.done), todoDone = S.todo.items.filter(t => t.done && t.doneOn === d);
@@ -881,28 +911,31 @@ function viewHoy(){
       ${anchors.map(a => `<button class="anchor" data-act="anchor" data-id="${a.id}" aria-pressed="${!!x.a[a.id]}">
         <span class="a-label"><span class="tick"></span>${esc(a.label)}</span>${a.hint ? `<span class="a-hint">${esc(a.hint)}</span>` : ''}</button>`).join('')}
     </div>
-    <div class="pair">
-      <div>
+    <div class="sleepbox">
         <h3>Dormí anoche</h3>
         <div class="chips">${SLEEP_OPTS.map(([v,l]) => `<button class="chip" data-act="sleep" data-v="${v}" aria-pressed="${x.sleep === v}">${l}</button>`).join('')}</div>
         <p class="meta">Meta: ${fmtNum(S.cfg.sleepTarget,1)} h${sl.length ? ` · promedio de la semana: ${fmtNum(avg(sl),1)} h` : ''}</p>
-      </div>
-      <div>
-        <h3>Ocio elegido</h3>
-        <div class="ocio-rows">
-          ${OCIO_TYPES.map(([k,l]) => `<div class="orow"><span>${l}</span><div class="stepper">
-            <button data-act="ocio" data-k="${k}" data-d="-30" aria-label="Quitar 30 minutos de ${l.toLowerCase()}" ${!op[k] ? 'disabled' : ''}>−</button>
-            <output>${fmtMin(op[k])}</output>
-            <button data-act="ocio" data-k="${k}" data-d="30" aria-label="Añadir 30 minutos de ${l.toLowerCase()}">+30</button>
-          </div></div>`).join('')}
-        </div>
-        ${op.otro ? `<p class="meta">Además, ${fmtMin(op.otro)} anotados antes sin tipo.</p>` : ''}
-        <label class="sr" for="ocio-que">Qué elegiste</label>
-        <input type="text" id="ocio-que" data-bind="ocio-que" value="${esc(x.ocioQue || '')}" maxlength="80" placeholder="¿Qué fue? Ej.: una película, dos capítulos" autocomplete="off">
-        <div class="meter ${ocW > budget ? 'over' : ''}" role="img" aria-label="${fmtMin(ocW)} de ${S.cfg.ocioBudgetH} horas"><span style="width:${ocPct}%"></span></div>
-        <p class="meta">${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h de límite esta semana${ocioByText(ocBy) ? ' · ' + ocioByText(ocBy) : ''}${ocW > budget ? '. Pasaste el límite: es un dato, no una falta.' : ''}</p>
-      </div>
     </div>
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>Ocio elegido</h2><span class="hint">Lo que elegiste para descansar, con su duración real. Límite: ${fmtNum(S.cfg.ocioBudgetH,1)} h por semana.</span></div>
+    ${x.ocioLog.length ? `<ul class="ocio-log">${x.ocioLog.map(e => `<li>
+      <span class="otag">${esc(ocioLabel(e))}</span><span class="dur">${fmtMin(e.min)}</span><span class="que">${esc(e.q || '')}</span>
+      <button class="x" data-act="ocio-del" data-id="${esc(e.id)}" aria-label="Quitar ${esc(ocioEntryText(e))}">×</button></li>`).join('')}</ul>` : ''}
+    <form class="ocio-form" data-form="ocio">
+      <div class="chips" role="group" aria-label="Tipo de ocio">${S.cfg.ocioTypes.map(t => `<button type="button" class="chip" data-act="ocio-type" data-id="${esc(t.id)}" aria-pressed="${pick === t.id}">${esc(t.label)}</button>`).join('')}</div>
+      <div class="row">
+        <span class="dur-in">
+          <label class="sr" for="oh">Horas</label><input type="number" id="oh" data-bind="ocio-draft" data-k="h" min="0" max="12" inputmode="numeric" value="${esc(dr.h)}" placeholder="0"> h
+          <label class="sr" for="om">Minutos</label><input type="number" id="om" data-bind="ocio-draft" data-k="m" min="0" max="59" inputmode="numeric" value="${esc(dr.m)}" placeholder="0"> min
+        </span>
+        <label class="sr" for="oq">Qué fue</label><input type="text" id="oq" data-bind="ocio-draft" data-k="q" value="${esc(dr.q)}" maxlength="80" placeholder="¿Qué fue? (opcional)" autocomplete="off">
+      </div>
+      <button class="btn">Anotar</button>
+    </form>
+    <div class="meter ${ocW > budget ? 'over' : ''}" role="img" aria-label="${fmtMin(ocW)} de ${S.cfg.ocioBudgetH} horas"><span style="width:${ocPct}%"></span></div>
+    <p class="meta">${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h esta semana${ocioByText(ocBy) ? ' · ' + ocioByText(ocBy) : ''}${ocW > budget ? '. Pasaste el límite: es un dato, no una falta.' : ''}</p>
   </section>
 
   <section class="block">
@@ -1001,7 +1034,7 @@ function viewSemana(){
   }).join('');
   const sleepRow = row('Sueño (h)', days.map(d => `<td class="val">${w.days[d] && typeof w.days[d].sleep === 'number' ? fmtSleep(w.days[d].sleep) : '·'}</td>`).join(''), sl.length ? fmtNum(avg(sl),1) : '–', sl.length && avg(sl) >= S.cfg.sleepTarget);
   const ocioRow = row('Ocio (min)', days.map(d => { const x = w.days[d]; if (!x || !x.ocio) return '<td class="val">·</td>';
-    const t = ocioByText(Object.assign({serie:0, juego:0, otro:0}, ocioParts(x))) + (x.ocioQue ? ' · ' + esc(x.ocioQue) : '');
+    const t = esc(x.ocioLog.map(ocioEntryText).join(' · '));
     return `<td class="val" title="${t}">${x.ocio}</td>`; }).join(''), fmtMin(oc), oc && oc <= budget);
 
   return `
@@ -1221,6 +1254,16 @@ function viewAjustes(){
   </section>
 
   <section class="block">
+    <div class="block-h"><h2>Tipos de ocio</h2><span class="hint">Las opciones que aparecen al anotar ocio. Añade las que uses.</span></div>
+    <ul class="setlist">${c.ocioTypes.map(t => `<li>
+      <label class="sr" for="ot-l-${esc(t.id)}">Nombre</label><input type="text" id="ot-l-${esc(t.id)}" data-bind="ot-label" data-id="${esc(t.id)}" value="${esc(t.label)}" maxlength="30">
+      ${c.ocioTypes.length < 2 ? '' : S.confirm === 'ocioTypes:' + t.id
+        ? `<button class="pill danger" data-act="cfg-del-yes" data-list="ocioTypes" data-id="${esc(t.id)}">Eliminar</button><button class="pill" data-act="confirm-no">Cancelar</button>`
+        : `<button class="pill" data-act="cfg-del" data-list="ocioTypes" data-id="${esc(t.id)}" aria-label="Eliminar ${esc(t.label)}">×</button>`}</li>`).join('')}</ul>
+    <form class="add" data-form="ocio-type"><label class="sr" for="ot-new">Nuevo tipo de ocio</label><input id="ot-new" placeholder="Nuevo tipo, ej.: YouTube, juego de mesa" maxlength="30" autocomplete="off"><button class="btn ghost">Añadir</button></form>
+  </section>
+
+  <section class="block">
     <div class="block-h"><h2>Anclas del día</h2><span class="hint">Pocas y pequeñas. Desactiva las que no te sirvan en esta etapa.</span></div>
     <ul class="setlist">${c.anchors.map(a => `<li>
       <input type="checkbox" id="an-on-${a.id}" data-bind="an-on" data-id="${a.id}" ${a.active ? 'checked' : ''} aria-label="Activa">
@@ -1312,11 +1355,11 @@ document.addEventListener('click', e => {
     case 'anchor': { const x = day(S.day); x.a[id] = !x.a[id]; saveWeek(mondayOf(S.day)); break; }
     case 'cell': { const d = b.dataset.day; if (d > TODAY) break; const x = day(d); x.a[id] = !x.a[id]; saveWeek(mondayOf(d)); break; }
     case 'sleep': { const x = day(S.day), v = +b.dataset.v; x.sleep = x.sleep === v ? null : v; saveWeek(mondayOf(S.day)); break; }
-    case 'ocio': {
-      const x = day(S.day), k = b.dataset.k, p = ocioParts(x);
-      if (!(k in p)) break;
-      p[k] = Math.max(0, p[k] + (+b.dataset.d));
-      x.ocioT = {serie:p.serie, juego:p.juego}; x.ocio = p.serie + p.juego + p.otro;
+    case 'ocio-type': S.ocioPick = id; break;
+    case 'ocio-del': {
+      const x = day(S.day);
+      x.ocioLog = x.ocioLog.filter(e => e.id !== id);
+      if (x.ocioLog.length) x.ocio = ocioSum(x); else delete x.ocio;
       saveWeek(mondayOf(S.day)); break;
     }
     case 'chore': {
@@ -1368,7 +1411,8 @@ document.addEventListener('input', e => {
     case 'review': week(S.week).review[el.dataset.k] = el.value; saveWeek(S.week); break;
     case 'mnote': month(S.month).review.note = el.value; saveMonth(S.month); break;
     case 'an-label': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a && el.value.trim()){ a.label = el.value; saveCfg(); } break; }
-    case 'ocio-que': day(S.day).ocioQue = el.value; saveWeek(mondayOf(S.day)); break;
+    case 'ocio-draft': S.ocioDraft[el.dataset.k] = el.value; break;
+    case 'ot-label': { const t = S.cfg.ocioTypes.find(x => x.id === el.dataset.id); if (t && el.value.trim()){ t.label = el.value; saveCfg(); } break; }
     case 'ch-label': { const c = S.cfg.chores.find(x => x.id === el.dataset.id); if (c && el.value.trim()){ c.label = el.value; saveCfg(); } break; }
     case 'rh-label': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r && el.value.trim()){ r.label = el.value; saveCfg(); } break; }
   }
@@ -1404,6 +1448,19 @@ document.addEventListener('submit', e => {
   } else if (t === 'anchor'){
     const i = document.getElementById('an-new'), v = i.value.trim(); if (!v) return;
     S.cfg.anchors.push({id:uid36(), label:v, hint:'', area:'mente', active:true}); saveCfg();
+  } else if (t === 'ocio'){
+    const dr = S.ocioDraft, h = parseInt(dr.h, 10) || 0, mi = parseInt(dr.m, 10) || 0, min = h * 60 + mi;
+    if (h < 0 || mi < 0 || min <= 0){ toast('Escribe cuánto duró: horas, minutos o ambos.'); return; }
+    if (min > 720){ toast('Son más de 12 horas. Revisa la duración.'); return; }
+    const types = S.cfg.ocioTypes, ty = types.find(x => x.id === S.ocioPick) || types[0];
+    const x = day(S.day);
+    x.ocioLog.push({id:uid36(), t:ty.id, tl:ty.label, min, q:dr.q.trim()});
+    x.ocio = ocioSum(x);
+    S.ocioDraft = {h:'', m:'', q:''};
+    saveWeek(mondayOf(S.day));
+  } else if (t === 'ocio-type'){
+    const i = document.getElementById('ot-new'), v = i.value.trim(); if (!v) return;
+    S.cfg.ocioTypes.push({id:uid36(), label:v}); saveCfg();
   } else if (t === 'todo'){
     const i = document.getElementById('todo-new'), v = i.value.trim(); if (!v) return;
     S.todo.items.push({id:uid36(), t:v, done:false, created:TODAY, doneOn:''}); i.value = ''; saveTodo();
