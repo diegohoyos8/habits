@@ -133,6 +133,13 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .meter span{display:block;height:100%;background:var(--lake);border-radius:999px}
 .meter.over span{background:var(--ember)}
 
+/* fronts */
+.front{border-top:1px solid var(--line);padding-top:22px}
+.front-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.front-h h2{font-size:24px;line-height:1.2}
+.fscore{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sub{display:flex;flex-direction:column;gap:8px}
+
 /* agenda */
 .agenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .agenda li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
@@ -359,29 +366,38 @@ const PRINCIPLES = [
   'Hacer una cosa a la vez es más rápido de lo que parece.',
   'No hace falta optimizar el ocio. Basta con elegirlo.'
 ];
-const AREAS = {
-  mente:'Mente', cuerpo:'Cuerpo', familia:'Familia', amigos:'Amigos', naturaleza:'Naturaleza',
-  trabajo:'Trabajo y dinero', crecimiento:'Crecimiento', creatividad:'Creatividad', hogar:'Hogar', ocio:'Ocio elegido'
+// Fronts of life. Every anchor and rhythm belongs to one (stored in its `area` field).
+const FRENTES = {salud:'Salud', social:'Social', finanzas:'Finanzas', desarrollo:'Desarrollo', hogar:'Hogar'};
+const FRENTE_DESC = {
+  salud:'Cuerpo y mente: dormir, comer, moverte, meditar y descansar.',
+  social:'Emilia, tu familia y tus amigos, cerca y lejos.',
+  finanzas:'El trabajo que sostiene la casa y el orden del dinero.',
+  desarrollo:'Leer, aprender y crear lo tuyo.',
+  hogar:'La base que hace posible lo demás: la casa, la compra y la logística.'
 };
+// Areas used before fronts existed, mapped to their front.
+const AREA_TO_FRONT = {mente:'salud', cuerpo:'salud', naturaleza:'salud', ocio:'salud', familia:'social', amigos:'social',
+  trabajo:'finanzas', crecimiento:'desarrollo', creatividad:'desarrollo', hogar:'hogar'};
 const DEFAULT_CFG = {
-  v:3, birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:10,
+  v:4, birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:10,
   anchors:[
-    {id:'meditar', label:'Meditar', hint:'Aunque sean 5 minutos', area:'mente', active:true},
-    {id:'mover',   label:'Moverme', hint:'Ejercicio, caminar, estirar', area:'cuerpo', active:true},
-    {id:'comer',   label:'Comer bien', hint:'Comida de verdad, sin prisa', area:'cuerpo', active:true},
-    {id:'leer',    label:'Leer con foco', hint:'Un bloque sin pantalla', area:'mente', active:true},
-    {id:'emilia',  label:'Jugar con Emilia', hint:'Presente, sin teléfono', area:'familia', active:true}
+    {id:'meditar', label:'Meditar', hint:'Aunque sean 5 minutos', area:'salud', active:true},
+    {id:'mover',   label:'Moverme', hint:'Ejercicio, caminar, estirar', area:'salud', active:true},
+    {id:'comer',   label:'Comer bien', hint:'Comida de verdad, sin prisa', area:'salud', active:true},
+    {id:'leer',    label:'Leer con foco', hint:'Un bloque sin pantalla', area:'desarrollo', active:true},
+    {id:'emilia',  label:'Jugar con Emilia', hint:'Presente, sin teléfono', area:'social', active:true}
   ],
   rhythms:[
-    {id:'trabajo',   label:'Bloque de trabajo profundo', area:'trabajo', target:5, active:true},
-    {id:'finanzas',  label:'Revisar finanzas', area:'trabajo', target:1, active:true},
-    {id:'papas',     label:'Llamar a mis papás y mandar fotos de Emilia', area:'familia', target:2, active:true},
-    {id:'lejos',     label:'Escribir a un amigo que está lejos', area:'amigos', target:2, active:true},
-    {id:'cerca',     label:'Compartir con amigos cerca', area:'amigos', target:1, active:true},
-    {id:'naturaleza',label:'Salir a la naturaleza', area:'naturaleza', target:1, active:true},
-    {id:'creativo',  label:'Proyecto creativo', area:'creatividad', target:2, active:true},
-    {id:'perfil',    label:'Perfil profesional: CV, LinkedIn, cursos de IA', area:'crecimiento', target:2, active:true},
-    {id:'apps',      label:'Construir mis apps de Claude', area:'crecimiento', target:2, active:true},
+    {id:'trabajo',   label:'Bloque de trabajo profundo', area:'finanzas', target:5, active:true},
+    {id:'finanzas',  label:'Revisar finanzas personales', area:'finanzas', target:1, active:true},
+    {id:'papas',     label:'Llamar a mis papás y mandar fotos de Emilia', area:'social', target:2, active:true},
+    {id:'lejos',     label:'Escribir a un amigo que está lejos', area:'social', target:2, active:true},
+    {id:'cerca',     label:'Compartir con amigos cerca', area:'social', target:1, active:true},
+    {id:'naturaleza',label:'Salir a la naturaleza', area:'salud', target:1, active:true},
+    {id:'creativo',  label:'Proyecto creativo', area:'desarrollo', target:2, active:true},
+    {id:'perfil',    label:'Actualizar CV y LinkedIn', area:'finanzas', target:1, active:true},
+    {id:'aprender',  label:'Aprender: cursos de IA', area:'desarrollo', target:2, active:true},
+    {id:'apps',      label:'Construir mis apps de Claude', area:'desarrollo', target:2, active:true},
     {id:'compra',    label:'Hacer la compra', area:'hogar', target:1, active:true}
   ],
   // Household chores on fixed weekdays (0 = lunes … 6 = domingo).
@@ -472,6 +488,18 @@ function normCfg(c){
     o.anchors = o.anchors.filter(a => a.id !== 'agenda');
     o.v = 3;
   }
+  if (!(c.v >= 4)){
+    // v4: habits are grouped in fronts. Reading moves to Desarrollo; the profile rhythm splits into CV/LinkedIn and learning.
+    const leer = o.anchors.find(a => a.id === 'leer'); if (leer) leer.area = 'desarrollo';
+    const perfil = o.rhythms.find(r => r.id === 'perfil');
+    if (perfil && /CV/.test(perfil.label) && /IA/.test(perfil.label)){ perfil.label = 'Actualizar CV y LinkedIn'; perfil.target = 1; perfil.area = 'finanzas'; }
+    if (!o.rhythms.some(r => r.id === 'aprender')){
+      const i = o.rhythms.findIndex(r => r.id === 'perfil');
+      o.rhythms.splice(i >= 0 ? i + 1 : o.rhythms.length, 0, structuredClone(DEFAULT_CFG.rhythms.find(r => r.id === 'aprender')));
+    }
+    o.v = 4;
+  }
+  for (const it of [...o.anchors, ...o.rhythms]) if (!FRENTES[it.area]) it.area = AREA_TO_FRONT[it.area] || 'desarrollo';
   if (!Array.isArray(o.chores)) o.chores = structuredClone(DEFAULT_CFG.chores);
   if (!Array.isArray(o.ocioTypes) || !o.ocioTypes.length) o.ocioTypes = structuredClone(DEFAULT_CFG.ocioTypes);
   return o;
@@ -790,10 +818,10 @@ function scoreWeek(m){
     add('hogar', Math.min(1, done / sched)); if (done) any = true;
   }
   const sl = days.map(d => w.days[d] && w.days[d].sleep).filter(v => typeof v === 'number');
-  if (sl.length){ add('cuerpo', sl.filter(v => v >= S.cfg.sleepTarget).length / sl.length); any = true; }
+  if (sl.length){ add('salud', sl.filter(v => v >= S.cfg.sleepTarget).length / sl.length); any = true; }
   const oc = days.map(d => w.days[d] && w.days[d].ocio).filter(v => typeof v === 'number');
   const ocio = oc.reduce((s,v) => s+v, 0);
-  if (oc.length){ const b = S.cfg.ocioBudgetH * 60; add('ocio', ocio <= b ? 1 : b / ocio); any = true; }
+  if (oc.length){ const b = S.cfg.ocioBudgetH * 60; add('salud', ocio <= b ? 1 : b / ocio); any = true; }
   if (!any) return null;
   const areas = {}; for (const k in per) areas[k] = avg(per[k]);
   return {overall: avg(Object.values(areas)), areas, sleepAvg: sl.length ? avg(sl) : null, ocio: oc.length ? ocio : null,
@@ -875,30 +903,101 @@ function weekGrid(m, w){
   const days = weekDays(m), sl = weekSleep(m), oc = weekOcio(m), budget = S.cfg.ocioBudgetH * 60;
   const row = (label, cells, tot, met) => `<tr><th scope="row">${label}</th>${cells}<td class="tot ${met ? 'met' : ''}">${tot}</td></tr>`;
   const cell = (act, id, d, on, label, extra = '') => `<td><button class="cell ${extra}" data-act="${act}" data-id="${id}" data-day="${d}" aria-pressed="${on}" aria-label="${label}, ${DOW_LONG[dow(d)]}" ${d > TODAY ? 'disabled' : ''}></button></td>`;
-  const anchorRows = activeAnchors().map(a => {
+  const anchorRow = a => {
     const c = days.filter(d => w.days[d] && w.days[d].a[a.id]).length;
     return row(esc(a.label), days.map(d => cell('cell', a.id, d, !!(w.days[d] && w.days[d].a[a.id]), esc(a.label))).join(''), `${c}/7`, c >= 5);
-  }).join('');
-  const rhythmRows = activeRhythms().map(r => {
+  };
+  const rhythmRow = r => {
     const arr = w.rhythms[r.id] || [];
     return row(esc(r.label), days.map(d => cell('rhythm', r.id, d, arr.includes(d), esc(r.label))).join(''), `${arr.length}/${r.target}`, arr.length >= r.target);
-  }).join('');
-  const chs = activeChores();
-  const choreRows = chs.map(c => {
+  };
+  const choreRow = c => {
     const arr = w.chores[c.id] || [], sched = days.filter(d => c.days.includes(dow(d))).length;
     return row(esc(c.label), days.map(d => cell('chore', c.id, d, arr.includes(d), esc(c.label) + (c.days.includes(dow(d)) ? ' (toca)' : ''), c.days.includes(dow(d)) ? 'sched' : '')).join(''), `${arr.length}/${sched}`, arr.length >= sched);
-  }).join('');
+  };
   const sleepRow = row('Sueño (h)', days.map(d => `<td class="val">${w.days[d] && typeof w.days[d].sleep === 'number' ? fmtSleep(w.days[d].sleep) : '·'}</td>`).join(''), sl.length ? fmtNum(avg(sl),1) : '–', sl.length && avg(sl) >= S.cfg.sleepTarget);
   const ocioRow = row('Ocio (min)', days.map(d => { const x = w.days[d]; if (!x || !x.ocio) return '<td class="val">·</td>';
     return `<td class="val" title="${esc(x.ocioLog.map(ocioEntryText).join(' · '))}">${x.ocio}</td>`; }).join(''), fmtMin(oc), oc && oc <= budget);
+  const groups = Object.keys(FRENTES).map(f => {
+    const chs = f === 'hogar' ? activeChores() : [];
+    const rows = activeAnchors().filter(a => a.area === f).map(anchorRow).join('')
+      + (f === 'salud' ? sleepRow + ocioRow : '')
+      + chs.map(choreRow).join('')
+      + activeRhythms().filter(r => r.area === f).map(rhythmRow).join('');
+    return rows ? `<tr class="grp"><th colspan="9">${FRENTES[f]}${chs.length ? ' (borde punteado = toca limpiar ese día)' : ''}</th></tr>${rows}` : '';
+  }).join('');
   return `<div class="scroll"><table class="matrix">
       <thead><tr><th scope="col"><span class="sr">Hábito</span></th>${days.map(d => `<th scope="col" class="${d === TODAY ? 'is-today' : ''} ${d === S.day ? 'is-sel' : ''}"><button class="colpick" data-act="pick-day" data-day="${d}" ${d > TODAY ? 'disabled' : ''} aria-label="Ver el ${DOW_LONG[dow(d)]} ${parse(d).getDate()}">${DOW[dow(d)]}<small>${parse(d).getDate()}</small></button></th>`).join('')}<th scope="col">Total</th></tr></thead>
-      <tbody>
-        <tr class="grp"><th colspan="9">Anclas diarias</th></tr>${anchorRows}${sleepRow}${ocioRow}
-        ${chs.length ? `<tr class="grp"><th colspan="9">Hogar (borde punteado = toca ese día)</th></tr>${choreRows}` : ''}
-        <tr class="grp"><th colspan="9">Ritmos semanales</th></tr>${rhythmRows}
-      </tbody>
+      <tbody>${groups}</tbody>
     </table></div>`;
+}
+
+/** The day's habits, grouped by front. Each front holds its daily anchors, its weekly rhythms and its own extras. */
+function frontsBlock(d){
+  const m = mondayOf(d), w = week(m), x = day(d), sc = scoreWeek(m), isToday = d === TODAY;
+  const sl = weekSleep(m), ocW = weekOcio(m), budget = S.cfg.ocioBudgetH * 60;
+  const ocPct = budget ? Math.min(100, ocW / budget * 100) : 0, ocBy = weekOcioBy(m);
+  const pick = S.cfg.ocioTypes.some(t => t.id === S.ocioPick) ? S.ocioPick : S.cfg.ocioTypes[0].id, dr = S.ocioDraft;
+  const up = upcoming(d), chores = choresFor(d), allChores = activeChores();
+
+  const anchorGrid = list => list.length ? `<div class="sub"><p class="label">Cada día</p><div class="anchors">
+      ${list.map(a => `<button class="anchor" data-act="anchor" data-id="${a.id}" aria-pressed="${!!x.a[a.id]}">
+        <span class="a-label"><span class="tick"></span>${esc(a.label)}</span>${a.hint ? `<span class="a-hint">${esc(a.hint)}</span>` : ''}</button>`).join('')}
+    </div></div>` : '';
+  const rhythmList = list => list.length ? `<div class="sub"><p class="label">Esta semana, sin día fijo</p><ul class="rhythms">
+      ${list.map(r => { const arr = w.rhythms[r.id] || [], on = arr.includes(d), n = arr.length;
+        return `<li><button class="rhythm ${n >= r.target ? 'met' : ''}" data-act="rhythm" data-id="${r.id}" data-day="${d}" aria-pressed="${on}">
+          <span class="r-label">${esc(r.label)}</span>
+          <span class="dots" aria-label="${n} de ${r.target}">${dots(n, r.target)}</span></button></li>`; }).join('')}
+    </ul></div>` : '';
+
+  const sleep = `<div class="sub sleepbox"><p class="label">Dormí anoche</p>
+      <div class="chips">${SLEEP_OPTS.map(([v,l]) => `<button class="chip" data-act="sleep" data-v="${v}" aria-pressed="${x.sleep === v}">${l}</button>`).join('')}</div>
+      <p class="meta">Meta: ${fmtNum(S.cfg.sleepTarget,1)} h${sl.length ? ` · promedio de la semana: ${fmtNum(avg(sl),1)} h` : ''}</p></div>`;
+
+  const ocio = `<div class="sub"><p class="label">Ocio elegido</p>
+    <p class="hint">Lo que elegiste para descansar, con su duración real. Límite: ${fmtNum(S.cfg.ocioBudgetH,1)} h por semana.</p>
+    ${x.ocioLog.length ? `<ul class="ocio-log">${x.ocioLog.map(e => `<li>
+      <span class="otag">${esc(ocioLabel(e))}</span><span class="dur">${fmtMin(e.min)}</span><span class="que">${esc(e.q || '')}</span>
+      <button class="x" data-act="ocio-del" data-id="${esc(e.id)}" aria-label="Quitar ${esc(ocioEntryText(e))}">×</button></li>`).join('')}</ul>` : ''}
+    <form class="ocio-form" data-form="ocio">
+      <div class="chips" role="group" aria-label="Tipo de ocio">${S.cfg.ocioTypes.map(t => `<button type="button" class="chip" data-act="ocio-type" data-id="${esc(t.id)}" aria-pressed="${pick === t.id}">${esc(t.label)}</button>`).join('')}</div>
+      <div class="row">
+        <span class="dur-in">
+          <label class="sr" for="oh">Horas</label><input type="number" id="oh" data-bind="ocio-draft" data-k="h" min="0" max="12" inputmode="numeric" value="${esc(dr.h)}" placeholder="0"> h
+          <label class="sr" for="om">Minutos</label><input type="number" id="om" data-bind="ocio-draft" data-k="m" min="0" max="59" inputmode="numeric" value="${esc(dr.m)}" placeholder="0"> min
+        </span>
+        <label class="sr" for="oq">Qué fue</label><input type="text" id="oq" data-bind="ocio-draft" data-k="q" value="${esc(dr.q)}" maxlength="80" placeholder="¿Qué fue? (opcional)" autocomplete="off">
+      </div>
+      <button class="btn">Anotar</button>
+    </form>
+    <div class="meter ${ocW > budget ? 'over' : ''}" role="img" aria-label="${fmtMin(ocW)} de ${S.cfg.ocioBudgetH} horas"><span style="width:${ocPct}%"></span></div>
+    <p class="meta">${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h esta semana${ocioByText(ocBy) ? ' · ' + ocioByText(ocBy) : ''}${ocW > budget ? '. Pasaste el límite: es un dato, no una falta.' : ''}</p>
+  </div>`;
+
+  const dates = `<div class="sub"><p class="label">Fechas clave</p>
+    ${up.length ? `<ul class="dates">${up.map(u => dateRow(u)).join('')}</ul>`
+      : `<p class="hint">${S.cfg.keyDates.length ? 'Nada vence en los próximos diez días.' : 'Añade una vez la renta, los créditos y los cobros en <a href="#mes">Mes</a>, y aparecerán aquí cuando se acerquen.'}</p>`}
+  </div>`;
+
+  const cleaning = allChores.length ? `<div class="sub"><p class="label">Limpieza, días fijos</p>
+    <p class="hint">${allChores.map(c => `${esc(c.label)}: ${choreDaysText(c)}`).join(' · ')}</p>
+    ${chores.length ? `<ul class="rhythms">${chores.map(({c, doneToday, note}) => `<li><button class="rhythm" data-act="chore" data-id="${c.id}" data-day="${d}" aria-pressed="${doneToday}">
+        <span class="r-label">${esc(c.label)}<span class="r-area">${note}</span></span></button></li>`).join('')}</ul>`
+      : `<p class="empty">${isToday ? 'Hoy' : 'Ese día'} no toca limpieza.${nextChore(d) ? ' Lo próximo: ' + esc(nextChore(d)) + '.' : ''}</p>`}
+  </div>` : '';
+
+  const extras = {salud:{before:sleep, after:ocio}, finanzas:{after:dates}, hogar:{before:cleaning}};
+  return Object.keys(FRENTES).map(f => {
+    const an = activeAnchors().filter(a => a.area === f), rh = activeRhythms().filter(r => r.area === f), ex = extras[f] || {};
+    if (!an.length && !rh.length && !ex.before && !ex.after) return '';
+    const v = sc && typeof sc.areas[f] === 'number' ? sc.areas[f] : null;
+    return `<section class="block front" id="f-${f}">
+      <div class="front-h"><h2>${FRENTES[f]}</h2>${v === null ? '' : `<span class="fscore">${pct(v)} esta semana</span>`}</div>
+      <p class="hint">${FRENTE_DESC[f]}</p>
+      ${anchorGrid(an)}${ex.before || ''}${rhythmList(rh)}${ex.after || ''}
+    </section>`;
+  }).join('');
 }
 
 function viewHoy(){
@@ -989,61 +1088,7 @@ function viewHoy(){
     ${carry.length && freeSlots ? `<button class="linkbtn" data-act="carry">Traer lo que quedó de ayer (${carry.length})</button>` : ''}
   </section>
 
-  <section class="block">
-    <div class="block-h"><h2>Anclas del día</h2><span class="hint">Lo mínimo que te sostiene. La versión pequeña también cuenta.</span></div>
-    <div class="anchors">
-      ${anchors.map(a => `<button class="anchor" data-act="anchor" data-id="${a.id}" aria-pressed="${!!x.a[a.id]}">
-        <span class="a-label"><span class="tick"></span>${esc(a.label)}</span>${a.hint ? `<span class="a-hint">${esc(a.hint)}</span>` : ''}</button>`).join('')}
-    </div>
-    <div class="sleepbox">
-        <h3>Dormí anoche</h3>
-        <div class="chips">${SLEEP_OPTS.map(([v,l]) => `<button class="chip" data-act="sleep" data-v="${v}" aria-pressed="${x.sleep === v}">${l}</button>`).join('')}</div>
-        <p class="meta">Meta: ${fmtNum(S.cfg.sleepTarget,1)} h${sl.length ? ` · promedio de la semana: ${fmtNum(avg(sl),1)} h` : ''}</p>
-    </div>
-  </section>
-
-  <section class="block">
-    <div class="block-h"><h2>Ocio elegido</h2><span class="hint">Lo que elegiste para descansar, con su duración real. Límite: ${fmtNum(S.cfg.ocioBudgetH,1)} h por semana.</span></div>
-    ${x.ocioLog.length ? `<ul class="ocio-log">${x.ocioLog.map(e => `<li>
-      <span class="otag">${esc(ocioLabel(e))}</span><span class="dur">${fmtMin(e.min)}</span><span class="que">${esc(e.q || '')}</span>
-      <button class="x" data-act="ocio-del" data-id="${esc(e.id)}" aria-label="Quitar ${esc(ocioEntryText(e))}">×</button></li>`).join('')}</ul>` : ''}
-    <form class="ocio-form" data-form="ocio">
-      <div class="chips" role="group" aria-label="Tipo de ocio">${S.cfg.ocioTypes.map(t => `<button type="button" class="chip" data-act="ocio-type" data-id="${esc(t.id)}" aria-pressed="${pick === t.id}">${esc(t.label)}</button>`).join('')}</div>
-      <div class="row">
-        <span class="dur-in">
-          <label class="sr" for="oh">Horas</label><input type="number" id="oh" data-bind="ocio-draft" data-k="h" min="0" max="12" inputmode="numeric" value="${esc(dr.h)}" placeholder="0"> h
-          <label class="sr" for="om">Minutos</label><input type="number" id="om" data-bind="ocio-draft" data-k="m" min="0" max="59" inputmode="numeric" value="${esc(dr.m)}" placeholder="0"> min
-        </span>
-        <label class="sr" for="oq">Qué fue</label><input type="text" id="oq" data-bind="ocio-draft" data-k="q" value="${esc(dr.q)}" maxlength="80" placeholder="¿Qué fue? (opcional)" autocomplete="off">
-      </div>
-      <button class="btn">Anotar</button>
-    </form>
-    <div class="meter ${ocW > budget ? 'over' : ''}" role="img" aria-label="${fmtMin(ocW)} de ${S.cfg.ocioBudgetH} horas"><span style="width:${ocPct}%"></span></div>
-    <p class="meta">${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h esta semana${ocioByText(ocBy) ? ' · ' + ocioByText(ocBy) : ''}${ocW > budget ? '. Pasaste el límite: es un dato, no una falta.' : ''}</p>
-  </section>
-
-  ${allChores.length ? `<section class="block">
-    <div class="block-h"><h2>Hogar</h2><span class="hint">${allChores.map(c => `${esc(c.label)}: ${choreDaysText(c)}`).join(' · ')}</span></div>
-    ${chores.length ? `<ul class="rhythms">${chores.map(({c, doneToday, note}) => `<li><button class="rhythm" data-act="chore" data-id="${c.id}" data-day="${d}" aria-pressed="${doneToday}">
-        <span class="r-label">${esc(c.label)}<span class="r-area">${note}</span></span></button></li>`).join('')}</ul>`
-      : `<p class="empty">${d === TODAY ? 'Hoy' : 'Ese día'} no toca nada de la casa.${nextChore(d) ? ' Lo próximo: ' + esc(nextChore(d)) + '.' : ''}</p>`}
-  </section>` : ''}
-
-  <section class="block">
-    <div class="block-h"><h2>Ritmos de la semana</h2><span class="hint">Sin día fijo. Toca lo que hiciste ${d === TODAY ? 'hoy' : 'ese día'}; los puntos son la meta semanal.</span></div>
-    <ul class="rhythms">
-      ${rh.map(r => { const arr = w.rhythms[r.id] || [], on = arr.includes(d), n = arr.length;
-        return `<li><button class="rhythm ${n >= r.target ? 'met' : ''}" data-act="rhythm" data-id="${r.id}" data-day="${d}" aria-pressed="${on}">
-          <span class="r-label">${esc(r.label)}<span class="r-area">${AREAS[r.area] || ''}</span></span>
-          <span class="dots" aria-label="${n} de ${r.target}">${dots(n, r.target)}</span></button></li>`; }).join('')}
-    </ul>
-  </section>
-
-  ${up.length ? `<section class="block">
-    <div class="block-h"><h2>Fechas clave</h2><span class="hint">Lo que vence en los próximos diez días.</span></div>
-    <ul class="dates">${up.map(u => dateRow(u)).join('')}</ul>
-  </section>` : (S.cfg.keyDates.length ? '' : `<section class="block"><div class="block-h"><h2>Fechas clave</h2>
-    <span class="hint">Añade una vez la renta, los créditos y los cobros en <a href="#mes">Mes</a>, y aparecerán aquí cuando se acerquen.</span></div></section>`)}
+  ${frontsBlock(d)}
 
   <section class="block">
     <div class="block-h"><h2>Pendientes varios</h2><span class="hint">Sin fecha ni orden. Cuando hagas uno, márcalo y pasa a Hecho.</span></div>
@@ -1202,14 +1247,14 @@ function viewTendencia(){
     const agg = {};
     for (const p of last) for (const k in p.s.areas) (agg[k] || (agg[k] = [])).push(p.s.areas[k]);
     const ranked = Object.entries(agg).map(([k,v]) => [k, avg(v)]).sort((x,y) => y[1] - x[1]);
-    if (ranked.length >= 2) line += ` Lo que más se sostiene: <b>${AREAS[ranked[0][0]]}</b>. Lo que pide un poco de cariño: <b>${AREAS[ranked[ranked.length-1][0]]}</b>.`;
+    if (ranked.length >= 2) line += ` Lo que más se sostiene: <b>${FRENTES[ranked[0][0]]}</b>. Lo que pide un poco de cariño: <b>${FRENTES[ranked[ranked.length-1][0]]}</b>.`;
   }
 
-  const hm = recentMondays(8), areaKeys = Object.keys(AREAS).filter(k => hm.some(x => { const s = scoreWeek(x); return s && k in s.areas; }) || activeAnchors().some(a => a.area === k) || activeRhythms().some(r => r.area === k));
+  const hm = recentMondays(8), areaKeys = Object.keys(FRENTES).filter(k => hm.some(x => { const s = scoreWeek(x); return s && k in s.areas; }) || activeAnchors().some(a => a.area === k) || activeRhythms().some(r => r.area === k));
   const heat = `<div class="heat" style="grid-template-columns:minmax(96px,150px) repeat(${hm.length},minmax(28px,1fr))">
     <span></span>${hm.map(x => `<span class="hh">${fmtDM(x)}</span>`).join('')}
-    ${areaKeys.map(k => `<span class="hl">${AREAS[k]}</span>${hm.map(x => { const s = scoreWeek(x), v = s && s.areas[k];
-      return typeof v === 'number' ? `<span class="hc" style="background:${heatColor(v)}" title="${AREAS[k]}, semana del ${fmtDM(x)}: ${pct(v)}"></span>` : `<span class="hc na" title="Sin registro"></span>`; }).join('')}`).join('')}
+    ${areaKeys.map(k => `<span class="hl">${FRENTES[k]}</span>${hm.map(x => { const s = scoreWeek(x), v = s && s.areas[k];
+      return typeof v === 'number' ? `<span class="hc" style="background:${heatColor(v)}" title="${FRENTES[k]}, semana del ${fmtDM(x)}: ${pct(v)}"></span>` : `<span class="hc na" title="Sin registro"></span>`; }).join('')}`).join('')}
   </div>`;
 
   const tableRows = ms.slice().reverse().filter(x => S.weeks[x]).map(x => {
@@ -1260,7 +1305,7 @@ function spark(pts){
 }
 
 function viewAjustes(){
-  const c = S.cfg, areaOpts = sel => Object.entries(AREAS).filter(([k]) => k !== 'ocio').map(([k,v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${v}</option>`).join('');
+  const c = S.cfg, areaOpts = sel => Object.entries(FRENTES).filter(([k]) => k !== 'ocio').map(([k,v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${v}</option>`).join('');
   const isDefault = (list, id) => DEFAULT_CFG[list].some(x => x.id === id);
   const delBtn = (list, id, label) => isDefault(list, id) ? '' : (S.confirm === `${list}:${id}`
       ? `<button class="pill danger" data-act="cfg-del-yes" data-list="${list}" data-id="${id}">Eliminar</button><button class="pill" data-act="confirm-no">Cancelar</button>`
@@ -1297,6 +1342,7 @@ function viewAjustes(){
     <ul class="setlist">${c.anchors.map(a => `<li>
       <input type="checkbox" id="an-on-${a.id}" data-bind="an-on" data-id="${a.id}" ${a.active ? 'checked' : ''} aria-label="Activa">
       <label class="sr" for="an-l-${a.id}">Nombre</label><input type="text" id="an-l-${a.id}" data-bind="an-label" data-id="${a.id}" value="${esc(a.label)}" maxlength="40">
+      <label class="sr" for="an-a-${a.id}">Frente</label><select id="an-a-${a.id}" data-bind="an-area" data-id="${a.id}">${areaOpts(a.area)}</select>
       ${delBtn('anchors', a.id, a.label)}</li>`).join('')}</ul>
     <form class="add" data-form="anchor"><label class="sr" for="an-new">Nueva ancla</label><input id="an-new" placeholder="Nueva ancla, ej.: Tomar agua al despertar" maxlength="40" autocomplete="off"><button class="btn ghost">Añadir</button></form>
   </section>
@@ -1306,7 +1352,7 @@ function viewAjustes(){
     <ul class="setlist">${c.rhythms.map(r => `<li>
       <input type="checkbox" id="rh-on-${r.id}" data-bind="rh-on" data-id="${r.id}" ${r.active ? 'checked' : ''} aria-label="Activo">
       <label class="sr" for="rh-l-${r.id}">Nombre</label><input type="text" id="rh-l-${r.id}" data-bind="rh-label" data-id="${r.id}" value="${esc(r.label)}" maxlength="60">
-      <label class="sr" for="rh-a-${r.id}">Área</label><select id="rh-a-${r.id}" data-bind="rh-area" data-id="${r.id}">${areaOpts(r.area)}</select>
+      <label class="sr" for="rh-a-${r.id}">Frente</label><select id="rh-a-${r.id}" data-bind="rh-area" data-id="${r.id}">${areaOpts(r.area)}</select>
       <span class="tgt"><button data-act="tgt" data-id="${r.id}" data-n="-1" aria-label="Menos veces">−</button><span>${r.target}×</span><button data-act="tgt" data-id="${r.id}" data-n="1" aria-label="Más veces">+</button></span>
       ${delBtn('rhythms', r.id, r.label)}</li>`).join('')}</ul>
     <form class="add" data-form="rhythm"><label class="sr" for="rh-new">Nuevo ritmo</label><input id="rh-new" placeholder="Nuevo ritmo, ej.: Cocinar algo nuevo" maxlength="60" autocomplete="off"><button class="btn ghost">Añadir</button></form>
@@ -1477,6 +1523,7 @@ document.addEventListener('change', e => {
     case 'an-on': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a){ a.active = el.checked; saveCfg(); } break; }
     case 'ch-on': { const c = S.cfg.chores.find(x => x.id === el.dataset.id); if (c){ c.active = el.checked; saveCfg(); } break; }
     case 'rh-on': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r){ r.active = el.checked; saveCfg(); } break; }
+    case 'an-area': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a){ a.area = el.value; saveCfg(); } break; }
     case 'rh-area': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r){ r.area = el.value; saveCfg(); } break; }
     default: return;
   }
@@ -1497,7 +1544,7 @@ document.addEventListener('submit', e => {
     saveCfg(); toast('Fecha añadida. Se repetirá cada mes.');
   } else if (t === 'anchor'){
     const i = document.getElementById('an-new'), v = i.value.trim(); if (!v) return;
-    S.cfg.anchors.push({id:uid36(), label:v, hint:'', area:'mente', active:true}); saveCfg();
+    S.cfg.anchors.push({id:uid36(), label:v, hint:'', area:'salud', active:true}); saveCfg();
   } else if (t === 'ocio'){
     const dr = S.ocioDraft, h = parseInt(dr.h, 10) || 0, mi = parseInt(dr.m, 10) || 0, min = h * 60 + mi;
     if (h < 0 || mi < 0 || min <= 0){ toast('Escribe cuánto duró: horas, minutos o ambos.'); return; }
@@ -1520,7 +1567,7 @@ document.addEventListener('submit', e => {
     toast('Tarea añadida para los ' + DOW_LONG[dow(TODAY)] + '. Cambia los días con las letras.');
   } else if (t === 'rhythm'){
     const i = document.getElementById('rh-new'), v = i.value.trim(); if (!v) return;
-    S.cfg.rhythms.push({id:uid36(), label:v, area:'crecimiento', target:1, active:true}); saveCfg();
+    S.cfg.rhythms.push({id:uid36(), label:v, area:'desarrollo', target:1, active:true}); saveCfg();
   }
   render();
 });

@@ -17,21 +17,25 @@ Da estructura sin convertir la vida en una lista de pendientes infinita.
 
 ## Cómo está organizada
 
-| Ritmo | Qué incluye |
+Los hábitos se agrupan en cinco **frentes**. Cada uno tiene anclas diarias, ritmos semanales (sin día fijo, con meta de veces por semana) y su propio porcentaje semanal.
+
+| Frente | Qué incluye |
 |---|---|
-| **Anclas diarias** | Meditar, moverme, comer bien, leer con foco, jugar con Emilia. Además: horas de sueño y ocio. |
-| **Ritmos semanales** (sin día fijo, con meta de veces por semana) | Trabajo profundo (5), revisar finanzas (1), llamar a mis papás y mandar fotos de Emilia (2), escribir a un amigo lejos (2), amigos cerca (1), naturaleza (1), proyecto creativo (2), perfil profesional (CV, LinkedIn, cursos de IA) (2), apps de Claude (2), hacer la compra (1). |
-| **Hogar con día fijo** | Aspirar, trapear y limpiar el WC los lunes y jueves. Si un día no se pudo, se marca otro día de la misma semana. |
-| **Pendientes varios** | Una lista sencilla, sin fecha, para cosas sueltas. |
-| **Mensual** | Fechas clave que se repiten cada mes (pagos y cobros de renta, créditos, tarjetas) y una revisión mensual de finanzas. |
+| **Salud** | Meditar, moverme, comer bien (diario); horas de sueño; salir a la naturaleza (1×); ocio elegido con límite de 10 h por semana. |
+| **Social** | Jugar con Emilia (diario); llamar a mis papás y mandar fotos de Emilia (2×); escribir a un amigo lejos (2×); compartir con amigos cerca (1×). |
+| **Finanzas** | Trabajo profundo (5×); revisar finanzas personales (1×); actualizar CV y LinkedIn (1×); fechas clave de pagos y cobros. |
+| **Desarrollo** | Leer con foco (diario); proyecto creativo (2×); aprender: cursos de IA (2×); construir mis apps de Claude (2×). |
+| **Hogar** | Limpieza en días fijos (aspirar, trapear y WC los lunes y jueves); hacer la compra (1×). |
+
+Aparte quedan **Pendientes varios** (una lista sencilla, sin fecha) y la revisión mensual de finanzas en *Mes*.
 
 Todo se puede ajustar en **Ajustes**: activar o pausar, renombrar, cambiar metas y añadir hábitos nuevos.
 
 ### Secciones
 
-- **Hoy** (día y semana juntos): la tira de los 7 días para moverte entre ellos, lo importante de la semana, la agenda de Google Calendar, las tres prioridades, las anclas, sueño y ocio, lo que toca de la casa, los ritmos, fechas próximas, pendientes varios, lo hecho, la cuadrícula de la semana y el cierre del domingo.
+- **Hoy** (día y semana juntos): la tira de los 7 días, lo importante de la semana, la agenda de Google Calendar, las tres prioridades del día, los cinco frentes, pendientes varios, lo hecho, la cuadrícula de la semana (agrupada por frente) y el cierre del domingo.
 - **Mes**: calendario con pagos y cobros, y la revisión de finanzas.
-- **Tendencia**: el año en semanas, la línea de balance de las últimas 12 semanas y el mapa por área.
+- **Tendencia**: el año en semanas, la línea de balance de las últimas 12 semanas y el mapa por frente.
 - **Ajustes**: fechas de nacimiento (tuya y de Emilia), metas de sueño y ocio, anclas y ritmos.
 
 ## Cómo empezar (sugerencia)
