@@ -147,6 +147,63 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .fitstats span b{font-weight:700}
 .anchor .ftag{margin-top:4px}
 
+/* training */
+.train{border:1px solid var(--line);border-radius:var(--r);padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.train.done{border-color:var(--lake);background:var(--lake-soft)}
+.train-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.train-h b{font-size:17px}
+.train details summary{cursor:pointer;color:var(--lake);font-size:15px}
+.routine{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:3px}
+.train .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.swap{max-width:100%;min-width:0;flex:1 1 180px}
+.planpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.pcard{border:1px solid var(--line);border-radius:var(--r);padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.pcard.current{border-color:var(--lake)}
+.pcard h3{font-family:var(--display);font-size:19px}
+.pdays{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.pdays b{display:inline-block;width:20px;color:var(--muted)}
+.pcard .pill{align-self:flex-start}
+table.sched{border-collapse:collapse;width:100%;min-width:340px}
+.sched th,.sched td{padding:8px 6px;border-top:1px solid var(--line);text-align:left;vertical-align:middle}
+.sched th{font-weight:400;white-space:nowrap}
+.sched tr.is-today th{color:var(--lake);font-weight:700}
+.sched td.st{text-align:right;white-space:nowrap}
+.stype{font-weight:700}
+.fbal{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.fbal li{display:grid;grid-template-columns:110px 1fr 52px;gap:10px;align-items:center}
+.fbal .fbar{height:8px;border-radius:999px;background:var(--cell);overflow:hidden}
+.fbal .fbar i{display:block;height:100%;background:var(--lake)}
+.fbal .fval{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted);font-size:14px}
+.wkhead .wktitle{flex:1;text-align:center;font-size:clamp(22px,5vw,28px);display:flex;flex-direction:column;align-items:center;gap:2px}
+.wkhead .wktitle .hint{font-family:var(--body)}
+
+/* goals */
+.goals{gap:16px}
+.goal{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.goal.paused{opacity:.75}
+.goal-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.goal-h h3{font-family:var(--display);font-size:22px}
+.gtag{font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.goal-now{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.goal-now .big{font-family:var(--display);font-size:32px;line-height:1.1;font-variant-numeric:tabular-nums}
+.gbar{height:10px;border-radius:999px;background:var(--cell);overflow:hidden}
+.gbar span{display:block;height:100%;background:var(--lake);border-radius:999px}
+.goal-pace{font-size:15px;max-width:62ch}
+.goal-actions{display:flex;gap:16px;flex-wrap:wrap}
+.linkbtn.danger{color:var(--ember)}
+.gspark{width:100%;max-width:560px;height:auto;display:block}
+.gspark .ax{fill:var(--muted);font-size:14px;font-family:var(--body)}
+.gspark .grid{stroke:var(--line)}
+.gspark .ln{fill:none;stroke:var(--lake);stroke-width:2.5;stroke-linejoin:round}
+.gspark .pt{fill:var(--lake)}
+.gspark .metaline{stroke:var(--ember);stroke-dasharray:5 4;stroke-width:1.5}
+.goalform{display:flex;flex-direction:column;gap:10px}
+.goalform .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.goalform input,.goalform select{width:100%;min-width:0}
+.gactual{width:90px}
+.pausedlist summary{cursor:pointer;color:var(--muted)}
+.pausedlist[open]{display:flex;flex-direction:column;gap:12px}
+
 /* agenda */
 .agenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .agenda li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
@@ -348,7 +405,9 @@ table.weeks{border-collapse:collapse;width:100%;font-size:14px;font-variant-nume
     <div class="brand"><b>Habitos</b><span class="meta" id="lifeweeks"></span></div>
     <nav class="tabs" aria-label="Secciones">
       <a href="#hoy" data-v="hoy">Hoy</a>
+      <a href="#semana" data-v="semana">Semana</a>
       <a href="#mes" data-v="mes">Mes</a>
+      <a href="#objetivos" data-v="objetivos">Objetivos</a>
       <a href="#tendencia" data-v="tendencia">Tendencia</a>
       <a href="#ajustes" data-v="ajustes">Ajustes</a>
     </nav>
@@ -389,7 +448,7 @@ const FRENTE_DESC = {
 const AREA_TO_FRONT = {mente:'salud', cuerpo:'salud', naturaleza:'salud', ocio:'salud', familia:'social', amigos:'social',
   trabajo:'finanzas', crecimiento:'desarrollo', creatividad:'desarrollo', hogar:'hogar'};
 const DEFAULT_CFG = {
-  v:4, birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:10,
+  v:5, birth:'', emiliaBirth:'', sleepTarget:7, ocioBudgetH:10,
   anchors:[
     {id:'meditar', label:'Meditar', hint:'Aunque sean 5 minutos', area:'salud', active:true},
     {id:'mover',   label:'Moverme', hint:'Ejercicio, caminar, estirar', area:'salud', active:true},
@@ -423,7 +482,11 @@ const DEFAULT_CFG = {
     {id:'videojuego', label:'Videojuego'},
     {id:'otro', label:'Otro'}
   ],
-  keyDates:[]
+  keyDates:[],
+  // Weekly training plan: plan id from PLANES and one session id per weekday (Monday first).
+  training:{plan:'', dias:null},
+  // Goals (at most MAX_GOALS active). The weight goal starts as a draft until a target is set.
+  goals:[{id:'peso', tipo:'peso', nombre:'Peso', frente:'salud', activo:true, meta:null, fecha:'', inicio:null, inicio_fecha:'', creado:''}]
 };
 
 const THREE_PH = ['Lo que haría que hoy valga la pena','Algo de trabajo que mueve la aguja','Algo para ti o para tu familia'];
@@ -476,7 +539,8 @@ const S = {
   ready:false, mode:'connecting', confirm:null,
   cal:{status:'idle'}, todo:{items:[]},
   ocioPick:null, ocioDraft:{h:'', m:'', q:''},
-  fit:{status:'idle'}
+  fit:{status:'idle'}, peso:{status:'idle'},
+  pickPlan:false, goalNew:false, goalTipo:'numero', goalEdit:null
 };
 
 function normCfg(c){
@@ -512,6 +576,10 @@ function normCfg(c){
   }
   for (const it of [...o.anchors, ...o.rhythms]) if (!FRENTES[it.area]) it.area = AREA_TO_FRONT[it.area] || 'desarrollo';
   if (!Array.isArray(o.chores)) o.chores = structuredClone(DEFAULT_CFG.chores);
+  if (!o.training || typeof o.training !== 'object') o.training = {plan:'', dias:null};
+  if (o.training.plan && (!Array.isArray(o.training.dias) || o.training.dias.length !== 7)) o.training.dias = PLANES[o.training.plan] ? PLANES[o.training.plan].dias.slice() : null;
+  if (!Array.isArray(o.goals)) o.goals = structuredClone(DEFAULT_CFG.goals);
+  o.goals = o.goals.filter(g => g && g.id && ['peso', 'numero', 'hito'].includes(g.tipo));
   if (!Array.isArray(o.ocioTypes) || !o.ocioTypes.length) o.ocioTypes = structuredClone(DEFAULT_CFG.ocioTypes);
   return o;
 }
@@ -544,6 +612,7 @@ function normWeek(w){
   }
   w.rhythms = w.rhythms && typeof w.rhythms === 'object' ? w.rhythms : {};
   w.chores = w.chores && typeof w.chores === 'object' ? w.chores : {};
+  w.entreno = w.entreno && typeof w.entreno === 'object' ? w.entreno : {};
   w.plan = Object.assign({focus:['','',''], skip:''}, w.plan || {});
   if (!Array.isArray(w.plan.focus)) w.plan.focus = ['','',''];
   while (w.plan.focus.length < 3) w.plan.focus.push('');
@@ -698,7 +767,7 @@ async function connectCal(){
   const [m, p] = await Promise.all([cl.use('mcp').catch(() => null), cl.use('permissions').catch(() => null)]);
   if (!m){ S.cal = {status:'off'}; render(); return; }
   mcp = m; perms = p;
-  ensureFitWatch();
+  ensureFitWatch(); ensurePesoWatch();
   const st = p ? await p.state('mcp:' + CAL).catch(() => 'unavailable') : 'prompt';
   if (st === 'denied'){ S.cal = {status:'denied'}; render(); return; }
   ensureCalWatch(); render();
@@ -803,6 +872,10 @@ function fillFromFit(days){
     if (mover && (exMin >= 10 || azm >= 20) && !x.a.mover && aSrc.mover !== 'manual'){
       x.a.mover = true; x.aSrc = Object.assign({}, aSrc, {mover:'fitbit'}); touched.add(m);
     }
+    if (hasPlan() && exMin >= 15){
+      const w = week(m), e = w.entreno[d] || {};
+      if (SESIONES[planDay(d)].tipo !== 'descanso' && !e.done && e.src !== 'manual'){ w.entreno[d] = Object.assign({}, e, {done:true, src:'fitbit'}); touched.add(m); }
+    }
     const fit = {
       pasos: typeof f.pasos === 'number' ? f.pasos : null,
       azm: typeof f.minutosZonaActiva === 'number' ? f.minutosZonaActiva : null,
@@ -838,6 +911,199 @@ function fitBlock(x){
   return `<div class="sub"><p class="label">Actividad <span class="ftag">Fitbit</span></p>
     ${parts.length ? `<div class="fitstats">${parts.join('')}</div>` : (f ? '<p class="hint">Sin actividad registrada ese día.</p>' : '')}
     ${status}</div>`;
+}
+
+/* ---------- training plans ---------- */
+// Session templates. tipo drives scoring and Fitbit matching; descanso is never "pending".
+const SESIONES = {
+  pesas_a:    {nombre:'Pesas · Empuje', tipo:'pesas', min:45, items:['Press de banca o flexiones · 4×8–10', 'Press militar con mancuernas · 3×10', 'Fondos o press cerrado · 3×10', 'Elevaciones laterales · 3×12', 'Extensión de tríceps · 3×12', 'Plancha · 3×40 s']},
+  pesas_b:    {nombre:'Pesas · Tirón', tipo:'pesas', min:45, items:['Remo con barra o mancuerna · 4×8–10', 'Jalón al pecho o dominadas asistidas · 3×8', 'Face pull o pájaros · 3×12', 'Curl de bíceps · 3×12', 'Peso muerto rumano · 3×10', 'Dead bug · 3×10']},
+  pesas_c:    {nombre:'Pesas · Pierna', tipo:'pesas', min:45, items:['Sentadilla goblet o con barra · 4×8–10', 'Peso muerto rumano · 3×10', 'Zancadas · 3×10 por pierna', 'Hip thrust · 3×12', 'Elevación de talones · 3×15', 'Plancha lateral · 3×30 s por lado']},
+  full_a:     {nombre:'Pesas · Cuerpo completo A', tipo:'pesas', min:35, items:['Sentadilla goblet · 3×10', 'Press de banca o flexiones · 3×10', 'Remo con mancuerna · 3×10 por lado', 'Peso muerto rumano · 3×10', 'Plancha · 3×40 s']},
+  full_b:     {nombre:'Pesas · Cuerpo completo B', tipo:'pesas', min:35, items:['Zancadas · 3×10 por pierna', 'Press militar con mancuernas · 3×10', 'Jalón al pecho o dominadas asistidas · 3×8', 'Hip thrust · 3×12', 'Dead bug · 3×10']},
+  cardio_z2:  {nombre:'Cardio · Zona 2', tipo:'cardio', min:40, items:['30–45 min a un ritmo en el que puedas conversar', 'Bici, caminata rápida, trote suave o elíptica']},
+  cardio_hiit:{nombre:'Cardio · Intervalos', tipo:'cardio', min:25, items:['5 min de calentamiento suave', '8 rondas: 30 s fuerte y 90 s suave', '5 min de vuelta a la calma']},
+  caminata:   {nombre:'Caminata larga', tipo:'cardio', min:50, items:['45–60 min a paso constante', 'Buen plan con Emilia en la carriola o en la naturaleza']},
+  yoga_mov:   {nombre:'Yoga · Movilidad', tipo:'yoga', min:25, items:['Saludo al sol × 5', 'Guerrero I y II, triángulo', 'Perro boca abajo y paloma', 'Torsiones sentado', 'Savasana 3 min']},
+  yoga_suave: {nombre:'Yoga suave', tipo:'yoga', min:20, items:['Gato-vaca y postura del niño', 'Figura 4 y estiramiento de isquios', 'Respiración 4-7-8, cinco ciclos']},
+  descanso:   {nombre:'Descanso', tipo:'descanso', min:0, items:['Recuperar también es entrenar. Una caminata tranquila cuenta como extra.']}
+};
+// Weekly plans, Monday first.
+const PLANES = {
+  equilibrado: {nombre:'Equilibrado', resumen:'6 días: 3 de pesas (empuje, tirón y pierna), 2 de cardio y 1 de yoga.', dias:['pesas_a', 'cardio_z2', 'pesas_b', 'yoga_mov', 'pesas_c', 'cardio_hiit', 'descanso']},
+  poco_tiempo: {nombre:'Poco tiempo', resumen:'4 días cortos: 2 de pesas de cuerpo completo, 1 de yoga y 1 caminata larga.', dias:['full_a', 'yoga_suave', 'descanso', 'full_b', 'descanso', 'caminata', 'descanso']},
+  bajar_peso:  {nombre:'Bajar de peso', resumen:'6 días: 2 de pesas de cuerpo completo, 3 de cardio (una es caminata larga) y 1 de yoga.', dias:['full_a', 'cardio_z2', 'yoga_mov', 'full_b', 'cardio_hiit', 'caminata', 'descanso']}
+};
+const hasPlan = () => !!(S.cfg.training && S.cfg.training.plan && Array.isArray(S.cfg.training.dias));
+/** The session planned for day d (a swap chosen that day wins over the plan). */
+function planDay(d){
+  if (!hasPlan()) return null;
+  const w = week(mondayOf(d)), e = w.entreno[d];
+  const id = (e && e.cambio) || S.cfg.training.dias[dow(d)];
+  return SESIONES[id] ? id : 'descanso';
+}
+function trainingBlock(d){
+  if (!hasPlan()) return `<div class="sub" id="entreno-hoy"><p class="label">Entrenamiento</p>
+    <p class="hint">Aún no eliges un plan de pesas, cardio y yoga. <a href="#semana">Elige uno en Semana</a>.</p></div>`;
+  const w = week(mondayOf(d)), e = w.entreno[d] || {}, id = planDay(d), s = SESIONES[id], def = S.cfg.training.dias[dow(d)];
+  const opts = Object.entries(SESIONES).map(([k, v]) => `<option value="${k}" ${k === id ? 'selected' : ''}>${esc(v.nombre)}${k === def ? ' (la del plan)' : ''}</option>`).join('');
+  return `<div class="sub" id="entreno-hoy"><p class="label">Entrenamiento ${d === TODAY ? 'de hoy' : 'de ese día'}</p>
+    <div class="train ${s.tipo} ${e.done ? 'done' : ''}">
+      <div class="train-h"><b>${esc(s.nombre)}</b>${s.min ? `<span class="meta">~${s.min} min</span>` : ''}${e.done && e.src === 'fitbit' ? '<span class="ftag">Registrado por tu Fitbit</span>' : ''}</div>
+      ${s.tipo === 'descanso' ? `<p class="hint">${esc(s.items[0])}</p>` : `<details><summary>Ver la rutina</summary><ul class="routine">${s.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></details>`}
+      <div class="row">
+        ${s.tipo === 'descanso' ? '' : `<button class="pill ${e.done ? '' : 'solid'}" data-act="train-done" data-day="${d}" aria-pressed="${!!e.done}">${e.done ? 'Hecho ✓' : 'Marcar hecho'}</button>`}
+        <label class="sr" for="train-swap">Cambiar la sesión</label>
+        <select id="train-swap" class="swap" data-bind="train-swap" data-day="${d}">${opts}</select>
+      </div>
+    </div></div>`;
+}
+
+/* ---------- goals ---------- */
+const MAX_GOALS = 3;
+let pesoUnsub = null, pesoKey = null;
+/** Weight history (up to 400 days) from the Fit Bit connector, refreshed hourly. */
+function ensurePesoWatch(){
+  if (!mcp) return;
+  const key = TODAY;
+  if (pesoKey === key) return;
+  if (pesoUnsub){ pesoUnsub(); pesoUnsub = null; }
+  pesoKey = key;
+  if (S.peso.status !== 'ok') S.peso = {status:'loading'};
+  pesoUnsub = mcp.watchTool(FIT, 'pesos', {desde: addDays(TODAY, -399), hasta: TODAY}, ev => {
+    if (pesoKey !== key) return;
+    if (ev.type === 'data'){
+      const p = ev.result && ev.result.payload, rows = p && Array.isArray(p.rows) ? p.rows : [];
+      S.peso = {status:'ok', at: ev.result.cache && ev.result.cache.storedAt ? ev.result.cache.storedAt : Date.now(),
+        rows: rows.filter(r => r && typeof r.fecha === 'string').sort((a, b) => a.fecha < b.fecha ? -1 : 1)};
+      fillGoalStarts();
+    } else {
+      const code = (ev.error && ev.error.code) || 'upstream_error';
+      if (S.peso.status !== 'ok' || CAL_RETRACT.includes(code)) S.peso = {status:'error', code};
+    }
+    if (S.view === 'objetivos') render();
+  }, {cache:{staleTime:600000, gcTime:86400000}, refetchInterval:3600000});
+}
+/** Weight progress for a weight goal: latest, start, pace over the last 4 weeks and projected date. */
+function pesoStats(g){
+  const rows = (S.peso.rows || []).filter(r => typeof r.peso_kg === 'number');
+  if (!rows.length) return null;
+  const last = rows[rows.length - 1];
+  let inicio = g.inicio, inicioF = g.inicio_fecha;
+  if (typeof inicio !== 'number'){ const s = rows.find(r => r.fecha >= (g.creado || TODAY)) || last; inicio = s.peso_kg; inicioF = s.fecha; }
+  const win = rows.filter(r => r.fecha >= addDays(last.fecha, -28));
+  let pace = null;
+  if (win.length >= 2 && diffDays(win[0].fecha, last.fecha) >= 7){
+    const xs = win.map(r => diffDays(win[0].fecha, r.fecha)), ys = win.map(r => r.peso_kg);
+    const mx = avg(xs), my = avg(ys), den = xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+    if (den) pace = Math.round(xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / den * 7 * 100) / 100;
+  }
+  const meta = typeof g.meta === 'number' ? g.meta : null;
+  let progress = null, eta = null;
+  if (meta !== null){
+    const total = inicio - meta;
+    progress = total === 0 ? 1 : Math.max(0, Math.min(1, (inicio - last.peso_kg) / total));
+    const rest = last.peso_kg - meta;
+    if (pace && rest !== 0 && Math.sign(pace) === -Math.sign(rest)) eta = addDays(last.fecha, Math.round(Math.abs(rest / pace) * 7));
+  }
+  const g2 = rows.slice().reverse().find(r => typeof r.grasa_pct === 'number');
+  return {rows, last, inicio, inicioF, pace, progress, eta, grasa: g2 || null};
+}
+/** A weight goal remembers where it started the first time there is a measurement for it. */
+function fillGoalStarts(){
+  if (!S.ready || !canEdit()) return;
+  let changed = false;
+  for (const g of S.cfg.goals){
+    if (g.tipo !== 'peso' || typeof g.meta !== 'number' || typeof g.inicio === 'number') continue;
+    const st = pesoStats(g); if (!st) continue;
+    g.inicio = st.inicio; g.inicio_fecha = st.inicioF; changed = true;
+  }
+  if (changed) saveCfg();
+}
+const fmtDMY = s => new Intl.DateTimeFormat('es', {day:'numeric', month:'long', year:'numeric'}).format(parse(s));
+const kg = v => `${fmtNum(v, 1)} kg`;
+function weightSvg(rows, meta){
+  const pts = rows.filter(r => typeof r.peso_kg === 'number' && r.fecha >= addDays(TODAY, -180));
+  if (pts.length < 2) return '';
+  const W = 420, H = 140, L = 44, R = 8, T = 12, B = 22;
+  const t0 = Date.parse(pts[0].fecha), t1 = Date.parse(pts[pts.length - 1].fecha) || t0 + 1;
+  const vals = pts.map(p => p.peso_kg).concat(meta === null ? [] : [meta]);
+  const lo = Math.floor(Math.min(...vals) - 0.5), hi = Math.ceil(Math.max(...vals) + 0.5);
+  const x = f => L + (Date.parse(f) - t0) / Math.max(1, t1 - t0) * (W - L - R), y = v => T + (hi - v) / Math.max(1, hi - lo) * (H - T - B);
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.fecha).toFixed(1)},${y(p.peso_kg).toFixed(1)}`).join(' ');
+  const last = pts[pts.length - 1];
+  return `<svg class="gspark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Peso de los últimos meses${meta === null ? '' : ' y meta'}">
+    <line class="grid" x1="${L}" x2="${W - R}" y1="${y(hi)}" y2="${y(hi)}"/><line class="grid" x1="${L}" x2="${W - R}" y1="${y(lo)}" y2="${y(lo)}"/>
+    <text class="ax" x="${L - 6}" y="${y(hi) + 4}" text-anchor="end">${hi} kg</text><text class="ax" x="${L - 6}" y="${y(lo) + 4}" text-anchor="end">${lo} kg</text>
+    <text class="ax" x="${L}" y="${H - 6}">${fmtDM(pts[0].fecha)}</text><text class="ax" x="${W - R}" y="${H - 6}" text-anchor="end">${fmtDM(last.fecha)}</text>
+    ${meta === null ? '' : `<line class="metaline" x1="${L}" x2="${W - R}" y1="${y(meta)}" y2="${y(meta)}"/><text class="ax" x="${W - R}" y="${y(meta) - 5}" text-anchor="end">meta ${fmtNum(meta, 1)}</text>`}
+    <path class="ln" d="${d}"/><circle class="pt" cx="${x(last.fecha)}" cy="${y(last.peso_kg)}" r="4.5"><title>${fmtDM(last.fecha)}: ${kg(last.peso_kg)}</title></circle>
+  </svg>`;
+}
+function goalForm(g){
+  const isPeso = g.tipo === 'peso', isHito = g.tipo === 'hito';
+  return `<form class="goalform" data-form="goal-edit" data-id="${esc(g.id)}">
+    ${isPeso ? '' : `<div class="stack"><label for="ge-nombre">Nombre</label><input type="text" id="ge-nombre" value="${esc(g.nombre)}" maxlength="60" required></div>`}
+    ${isHito ? '' : `<div class="stack"><label for="ge-meta">${isPeso ? 'Peso meta (kg)' : 'Meta' + (g.unidad ? ' (' + esc(g.unidad) + ')' : '')}</label><input type="number" id="ge-meta" step="${isPeso ? '0.1' : 'any'}" ${isPeso ? 'min="30" max="300"' : ''} inputmode="decimal" value="${typeof g.meta === 'number' ? g.meta : ''}" required></div>`}
+    <div class="stack"><label for="ge-fecha">Para cuándo (opcional)</label><input type="date" id="ge-fecha" value="${esc(g.fecha || '')}" min="${TODAY}"></div>
+    <div class="row"><button class="btn">Guardar</button>${typeof g.meta === 'number' || isHito ? '<button type="button" class="pill" data-act="goal-edit-no">Cancelar</button>' : ''}</div>
+  </form>`;
+}
+function goalCard(g){
+  const editing = S.goalEdit === g.id || (g.tipo === 'peso' && typeof g.meta !== 'number');
+  const actions = S.confirm === 'goal:' + g.id
+    ? `<button class="pill danger" data-act="goal-del-yes" data-id="${esc(g.id)}">Eliminar</button><button class="pill" data-act="confirm-no">Cancelar</button>`
+    : `${editing ? '' : `<button class="linkbtn" data-act="goal-edit" data-id="${esc(g.id)}">Editar</button>`}
+       <button class="linkbtn" data-act="goal-toggle" data-id="${esc(g.id)}">${g.activo ? 'Pausar' : 'Activar'}</button>
+       <button class="linkbtn danger" data-act="goal-del" data-id="${esc(g.id)}">Eliminar</button>`;
+  let body = '';
+  if (g.tipo === 'peso'){
+    const st = pesoStats(g);
+    const status = S.peso.status === 'error' ? `<p class="hint">${FIT_MSG[S.peso.code] || 'No pude leer tu peso de Google Health ahora.'}</p>`
+      : S.peso.status === 'off' || !mcp ? '<p class="hint">Tu peso llega de Google Health al abrir esta página en claude.ai con el conector Fit Bit.</p>'
+      : S.peso.status !== 'ok' ? '<p class="hint">Leyendo tu peso de Google Health…</p>'
+      : !st ? '<p class="hint">No encontré mediciones de peso en Google Health en el último año. Pésate y registra el peso en la app de Fitbit o Google Health; aparecerá aquí.</p>' : '';
+    if (editing || typeof g.meta !== 'number'){
+      body = `${st ? `<p class="goal-now"><span class="big">${kg(st.last.peso_kg)}</span><span class="meta">tu última medición, ${fmtDM(st.last.fecha)}</span></p>` : status}
+        ${typeof g.meta !== 'number' ? '<p class="hint">Define tu peso meta para empezar a medir el avance.</p>' : ''}${goalForm(g)}`;
+    } else if (!st){
+      body = `<p class="meta">Meta: ${kg(g.meta)}${g.fecha ? ' para el ' + fmtDMY(g.fecha) : ''}</p>${status}`;
+    } else {
+      const fast = st.pace !== null && Math.abs(st.pace) > st.last.peso_kg * 0.01;
+      let paceTxt;
+      if (st.pace === null) paceTxt = 'Aún no hay suficientes mediciones en las últimas 4 semanas para calcular tu ritmo. Con pesarte dos veces por semana basta.';
+      else {
+        paceTxt = `Ritmo de las últimas 4 semanas: <b>${st.pace > 0 ? '+' : st.pace < 0 ? '−' : ''}${fmtNum(Math.abs(st.pace), 2)} kg por semana</b>.`;
+        if (st.eta) paceTxt += ` A este ritmo llegarías a la meta hacia el ${fmtDMY(st.eta)}${g.fecha ? (st.eta <= g.fecha ? ', antes de tu fecha' : ', después de tu fecha') : ''}.`;
+        else if (st.progress < 1) paceTxt += ' Por ahora vas en dirección contraria; mira la tendencia de varias semanas antes de sacar conclusiones.';
+        if (fast) paceTxt += ' Es un ritmo rápido: más del 1 % de tu peso por semana.';
+      }
+      body = `<p class="goal-now"><span class="big">${kg(st.last.peso_kg)}</span><span class="meta">medido el ${fmtDM(st.last.fecha)}${st.grasa ? ` · grasa ${fmtNum(st.grasa.grasa_pct, 1)} %` : ''}</span></p>
+        <div class="gbar" role="img" aria-label="${pct(st.progress)} del camino"><span style="width:${Math.round(st.progress * 100)}%"></span></div>
+        <p class="meta">De ${kg(st.inicio)} (${fmtDM(st.inicioF)}) a ${kg(g.meta)}${g.fecha ? ' para el ' + fmtDMY(g.fecha) : ''} · ${pct(st.progress)} del camino</p>
+        <p class="goal-pace">${paceTxt}</p>
+        ${weightSvg(st.rows, g.meta)}`;
+    }
+  } else if (g.tipo === 'numero'){
+    if (editing) body = goalForm(g);
+    else {
+      const ini = g.inicio || 0, act = typeof g.actual === 'number' ? g.actual : ini, span = (g.meta || 0) - ini;
+      const prog = span ? Math.max(0, Math.min(1, (act - ini) / span)) : 1;
+      body = `<p class="goal-now"><span class="big">${fmtNum(act, 1)}</span><span class="meta">de ${fmtNum(g.meta || 0, 1)}${g.unidad ? ' ' + esc(g.unidad) : ''}${g.fecha ? ' · para el ' + fmtDMY(g.fecha) : ''}</span></p>
+        <div class="gbar" role="img" aria-label="${pct(prog)} del camino"><span style="width:${Math.round(prog * 100)}%"></span></div>
+        <div class="row stepper"><button type="button" data-act="goal-step" data-id="${esc(g.id)}" data-n="-1" aria-label="Restar uno">−</button>
+          <label class="sr" for="ga-${esc(g.id)}">Avance actual</label><input type="number" id="ga-${esc(g.id)}" class="gactual" data-bind="goal-actual" data-id="${esc(g.id)}" value="${act}" step="any">
+          <button type="button" data-act="goal-step" data-id="${esc(g.id)}" data-n="1" aria-label="Sumar uno">+1</button></div>`;
+    }
+  } else {
+    body = editing ? goalForm(g) : `<button class="pill ${g.hecho ? '' : 'solid'}" data-act="goal-hito" data-id="${esc(g.id)}" aria-pressed="${!!g.hecho}">${g.hecho ? 'Cumplido ✓' : 'Marcar cumplido'}</button>
+      ${g.fecha ? `<p class="meta">Para el ${fmtDMY(g.fecha)}</p>` : ''}`;
+  }
+  return `<article class="goal ${g.activo ? '' : 'paused'}" id="goal-${esc(g.id)}">
+    <div class="goal-h"><h3>${esc(g.nombre)}</h3><span class="gtag">${FRENTES[g.frente] || ''}</span></div>
+    ${body}
+    <div class="row goal-actions">${actions}</div>
+  </article>`;
 }
 
 const hm = t => new Intl.DateTimeFormat('es',{hour:'2-digit',minute:'2-digit'}).format(t);
@@ -924,6 +1190,11 @@ function scoreWeek(m){
     if (!sched) continue;
     const done = (w.chores[c.id] || []).length;
     add('hogar', Math.min(1, done / sched)); if (done) any = true;
+  }
+  if (hasPlan()){
+    const planned = days.filter(d => SESIONES[planDay(d)].tipo !== 'descanso');
+    const done = planned.filter(d => w.entreno[d] && w.entreno[d].done).length;
+    if (planned.length){ add('salud', done / planned.length); if (done) any = true; }
   }
   const sl = days.map(d => w.days[d] && w.days[d].sleep).filter(v => typeof v === 'number');
   if (sl.length){ add('salud', sl.filter(v => v >= S.cfg.sleepTarget).length / sl.length); any = true; }
@@ -1028,10 +1299,13 @@ function weekGrid(m, w){
   const sleepRow = row('Sueño (h)', days.map(d => `<td class="val">${w.days[d] && typeof w.days[d].sleep === 'number' ? fmtSleep(w.days[d].sleep) : '·'}</td>`).join(''), sl.length ? fmtNum(avg(sl),1) : '–', sl.length && avg(sl) >= S.cfg.sleepTarget);
   const ocioRow = row('Ocio (min)', days.map(d => { const x = w.days[d]; if (!x || !x.ocio) return '<td class="val">·</td>';
     return `<td class="val" title="${esc(x.ocioLog.map(ocioEntryText).join(' · '))}">${x.ocio}</td>`; }).join(''), fmtMin(oc), oc && oc <= budget);
+  const trainRow = hasPlan() ? row('Entrenamiento', days.map(d => { const id = planDay(d), s = SESIONES[id], on = !!(w.entreno[d] && w.entreno[d].done);
+      return `<td><button class="cell ${s.tipo === 'descanso' ? '' : 'sched'}" data-act="train-done" data-day="${d}" aria-pressed="${on}" aria-label="${esc(s.nombre)}, ${DOW_LONG[dow(d)]}" title="${esc(s.nombre)}" ${d > TODAY ? 'disabled' : ''}></button></td>`; }).join(''),
+      (() => { const pl = days.filter(d => SESIONES[planDay(d)].tipo !== 'descanso'); return `${pl.filter(d => w.entreno[d] && w.entreno[d].done).length}/${pl.length}`; })(), false) : '';
   const groups = Object.keys(FRENTES).map(f => {
     const chs = f === 'hogar' ? activeChores() : [];
     const rows = activeAnchors().filter(a => a.area === f).map(anchorRow).join('')
-      + (f === 'salud' ? sleepRow + ocioRow : '')
+      + (f === 'salud' ? trainRow + sleepRow + ocioRow : '')
       + chs.map(choreRow).join('')
       + activeRhythms().filter(r => r.area === f).map(rhythmRow).join('');
     return rows ? `<tr class="grp"><th colspan="9">${FRENTES[f]}${chs.length ? ' (borde punteado = toca limpiar ese día)' : ''}</th></tr>${rows}` : '';
@@ -1103,7 +1377,7 @@ function frontsBlock(d){
       : `<p class="empty">${isToday ? 'Hoy' : 'Ese día'} no toca limpieza.${nextChore(d) ? ' Lo próximo: ' + esc(nextChore(d)) + '.' : ''}</p>`}
   </div>` : '';
 
-  const extras = {salud:{before:sleep + fitBlock(x), after:ocio}, finanzas:{after:dates}, hogar:{before:cleaning}};
+  const extras = {salud:{before:trainingBlock(d) + sleep + fitBlock(x), after:ocio}, finanzas:{after:dates}, hogar:{before:cleaning}};
   return Object.keys(FRENTES).map(f => {
     const an = activeAnchors().filter(a => a.area === f), rh = activeRhythms().filter(r => r.area === f), ex = extras[f] || {};
     if (!an.length && !rh.length && !ex.before && !ex.after) return '';
@@ -1140,33 +1414,14 @@ function viewHoy(){
     ...anchors.filter(a => x.a[a.id]).map(a => a.label),
     ...rh.filter(r => (w.rhythms[r.id] || []).includes(d)).map(r => r.label),
     ...allChores.filter(c => (w.chores[c.id] || []).includes(d)).map(c => c.label),
-    ...todoDone.map(t => t.t)
+    ...todoDone.map(t => t.t),
+    ...(hasPlan() && w.entreno[d] && w.entreno[d].done ? [SESIONES[planDay(d)].nombre] : [])
   ];
 
-  const editingPlan = S.editPlan || !focus.length;
-  const planBlock = editingPlan ? `
-    <div class="plan3">${[0,1,2].map(i => `<label class="sr" for="pf-${i}">Importante ${i+1}</label><input type="text" id="pf-${i}" data-bind="plan" data-i="${i}" value="${esc(w.plan.focus[i])}" maxlength="80" placeholder="${PLAN_PH[i]}">`).join('')}</div>
-    <div class="stack">
-      <label for="pskip">Esta semana dejo ir, a propósito</label>
-      <input type="text" id="pskip" data-bind="skip" value="${esc(w.plan.skip)}" maxlength="120" placeholder="Ej.: ordenar el garaje, el curso nuevo, responder todo al instante">
-      <span class="hint">Elegir de antemano en qué quedarte corto es una decisión, no un fracaso.</span>
-    </div>
-    ${focus.length ? '<button class="pill" data-act="plan-done">Listo</button>' : ''}`
-    : `<p class="weekfocus">${focus.map(f => `<span class="it">${esc(f)}</span>`).join('')}</p>
-    ${w.plan.skip ? `<p class="meta">Dejo ir: ${esc(w.plan.skip)}</p>` : ''}
-    <button class="linkbtn" data-act="plan-edit">Editar</button>`;
-
-  const nm = addDays(mondayOf(TODAY), 7), nw = week(nm);
   const ritual = d === TODAY && dow(d) === 6 ? `<div class="ritual">
-      <p><b>Ritual del domingo.</b> Diez minutos: cierra esta semana al final de la página y elige lo importante de la próxima.</p>
-      <div class="plan3">${[0,1,2].map(i => `<label class="sr" for="pn-${i}">Importante de la próxima semana ${i+1}</label><input type="text" id="pn-${i}" data-bind="plan-next" data-i="${i}" value="${esc(nw.plan.focus[i])}" maxlength="80" placeholder="${i ? 'Otra cosa importante' : 'Lo importante de la próxima semana'}">`).join('')}</div>
-      <label class="sr" for="pnskip">La próxima semana dejo ir</label>
-      <input type="text" id="pnskip" data-bind="skip-next" value="${esc(nw.plan.skip)}" maxlength="120" placeholder="La próxima semana dejo ir…">
-      <div class="row"><button class="pill" data-act="to-review">Ir al cierre de esta semana</button></div>
+      <p><b>Hoy toca el ritual del domingo.</b> Diez minutos para cerrar esta semana y elegir lo importante de la próxima.</p>
+      <div class="row"><a class="pill solid" href="#semana">Ir a Semana</a></div>
     </div>` : '';
-  const hasReview = Object.values(w.review).some(v => String(v || '').trim());
-  const showReview = S.showReview || pastWeek || dow(d) >= 4 || hasReview;
-
   return `
   <section class="dayhead">
     <h1>${d === TODAY ? 'Hoy, ' + fmtLong(d).toLowerCase() : fmtLong(d)}</h1>
@@ -1185,9 +1440,9 @@ function viewHoy(){
     <p class="meta">Balance ${sc ? pct(sc.overall) + (sc.complete ? '' : ' (en curso)') : '–'} · Sueño ${sl.length ? fmtNum(avg(sl),1) + ' h' : '–'} · Ocio ${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h</p>
   </section>
 
-  <section class="block planbox">
-    <div class="block-h"><h2>Lo importante de la semana</h2>${editingPlan ? '<span class="hint">Hasta tres. Se quedan aquí arriba toda la semana para que no se pierdan.</span>' : ''}</div>
-    ${planBlock}
+  <section class="block">
+    ${focus.length ? `<p class="weekfocus"><span class="label">Esta semana importa</span>${focus.map(f => `<span class="it">${esc(f)}</span>`).join('')}</p>`
+      : '<p class="hint">Aún no eliges lo importante de esta semana. <a href="#semana">Hazlo en Semana</a>.</p>'}
   </section>
   ${ritual}
   ${agendaBlock(d)}
@@ -1239,20 +1494,6 @@ function viewHoy(){
       <label for="note">Una línea para recordar</label>
       <textarea id="note" data-bind="note" rows="2" maxlength="600" placeholder="Algo que dijo Emilia, un momento, una idea…">${esc(x.note)}</textarea>
     </div>
-  </section>
-
-  <section class="block">
-    <div class="block-h"><h2>La semana de un vistazo</h2><span class="hint">Toca una casilla para marcar o desmarcar ese día, o la letra del día para verlo arriba.</span></div>
-    ${weekGrid(m, w)}
-  </section>
-
-  <section class="block" id="cierre">
-    <div class="block-h"><h2>Cierre de semana</h2><span class="hint">Cinco minutos el domingo. Nadie lo califica.</span></div>
-    ${showReview ? `
-    <div class="stack"><label for="rev-emilia">Un momento con Emilia que quiero recordar</label><textarea id="rev-emilia" data-bind="review" data-k="emilia" maxlength="600">${esc(w.review.emilia)}</textarea></div>
-    <div class="stack"><label for="rev-worked">Qué funcionó</label><textarea id="rev-worked" data-bind="review" data-k="worked" maxlength="600">${esc(w.review.worked)}</textarea></div>
-    <div class="stack"><label for="rev-adjust">Qué ajusto para la próxima</label><textarea id="rev-adjust" data-bind="review" data-k="adjust" maxlength="600">${esc(w.review.adjust)}</textarea></div>`
-    : '<button class="linkbtn" data-act="show-review">Escribir el cierre ahora</button>'}
   </section>`;
 }
 
@@ -1270,6 +1511,131 @@ function dateRow(u){
       <small>${whenText(u.dd)}${kd.amount ? ' · ' + esc(kd.amount) : ''}</small></span>
     <button class="pill" data-act="kd" data-id="${kd.id}" data-k="${u.k}" aria-pressed="${u.ok}">${kdLabel(kd, u.ok)}</button>
   </li>`;
+}
+
+function viewSemana(){
+  const d = S.day, m = mondayOf(d), w = week(m), days = weekDays(m);
+  const isCurWeek = m === mondayOf(TODAY), pastWeek = m < mondayOf(TODAY), sc = scoreWeek(m);
+  const sl = weekSleep(m), ocW = weekOcio(m);
+  const focus = w.plan.focus.filter(Boolean);
+  const editingPlan = S.editPlan || !focus.length;
+  const planBlock = editingPlan ? `
+    <div class="plan3">${[0,1,2].map(i => `<label class="sr" for="pf-${i}">Importante ${i+1}</label><input type="text" id="pf-${i}" data-bind="plan" data-i="${i}" value="${esc(w.plan.focus[i])}" maxlength="80" placeholder="${PLAN_PH[i]}">`).join('')}</div>
+    <div class="stack">
+      <label for="pskip">Esta semana dejo ir, a propósito</label>
+      <input type="text" id="pskip" data-bind="skip" value="${esc(w.plan.skip)}" maxlength="120" placeholder="Ej.: ordenar el garaje, el curso nuevo, responder todo al instante">
+      <span class="hint">Elegir de antemano en qué quedarte corto es una decisión, no un fracaso.</span>
+    </div>
+    ${focus.length ? '<button class="pill" data-act="plan-done">Listo</button>' : ''}`
+    : `<p class="weekfocus">${focus.map(f => `<span class="it">${esc(f)}</span>`).join('')}</p>
+    ${w.plan.skip ? `<p class="meta">Dejo ir: ${esc(w.plan.skip)}</p>` : ''}
+    <button class="linkbtn" data-act="plan-edit">Editar</button>`;
+
+  // Training for the week.
+  let training;
+  if (!hasPlan() || S.pickPlan){
+    training = `<p class="hint">Elige un plan. Después puedes cambiar la sesión de cualquier día desde Hoy, o ajustar el plan en Ajustes.</p>
+      <div class="planpick">${Object.entries(PLANES).map(([id, p]) => `<div class="pcard ${S.cfg.training.plan === id ? 'current' : ''}">
+        <h3>${esc(p.nombre)}</h3><p class="hint">${esc(p.resumen)}</p>
+        <ol class="pdays">${p.dias.map((s, i) => `<li><b>${DOW[i]}</b> ${esc(SESIONES[s].nombre)}</li>`).join('')}</ol>
+        <button class="pill ${S.cfg.training.plan === id ? '' : 'solid'}" data-act="plan-pick" data-id="${id}">${S.cfg.training.plan === id ? 'Plan actual' : 'Elegir este plan'}</button></div>`).join('')}</div>
+      ${hasPlan() ? '<button class="linkbtn" data-act="plan-change">Cancelar</button>' : ''}`;
+  } else {
+    const planned = days.filter(dd => dd <= TODAY && SESIONES[planDay(dd)].tipo !== 'descanso');
+    const done = planned.filter(dd => w.entreno[dd] && w.entreno[dd].done).length;
+    training = `<p class="meta">Plan «${esc(PLANES[S.cfg.training.plan] ? PLANES[S.cfg.training.plan].nombre : 'personalizado')}» · ${done} de ${planned.length} sesiones hechas hasta hoy</p>
+      <div class="scroll"><table class="sched"><tbody>${days.map(dd => {
+        const id = planDay(dd), s = SESIONES[id], e = w.entreno[dd] || {};
+        return `<tr class="${dd === TODAY ? 'is-today' : ''}"><th scope="row">${cap(DOW_LONG[dow(dd)])} ${parse(dd).getDate()}</th>
+          <td><span class="stype ${s.tipo}">${esc(s.nombre)}</span>${e.cambio ? ' <span class="meta">(cambiada)</span>' : ''}</td>
+          <td class="st">${s.tipo === 'descanso' ? '<span class="meta">Descanso</span>'
+            : `<button class="pill" data-act="train-done" data-day="${dd}" aria-pressed="${!!e.done}" ${dd > TODAY ? 'disabled' : ''}>${e.done ? 'Hecho ✓' : dd > TODAY ? 'Por venir' : 'Pendiente'}</button>${e.done && e.src === 'fitbit' ? ' <span class="ftag">Fitbit</span>' : ''}`}</td></tr>`;
+      }).join('')}</tbody></table></div>
+      <button class="linkbtn" data-act="plan-change">Cambiar de plan</button>`;
+  }
+
+  const fronts = Object.keys(FRENTES).filter(f => sc && typeof sc.areas[f] === 'number');
+  const balance = fronts.length ? `<ul class="fbal">${fronts.map(f => `<li><span class="fname">${FRENTES[f]}</span>
+      <span class="fbar" role="img" aria-label="${FRENTES[f]}: ${pct(sc.areas[f])}"><i style="width:${Math.round(sc.areas[f] * 100)}%"></i></span><span class="fval">${pct(sc.areas[f])}</span></li>`).join('')}</ul>`
+    : '<p class="empty">Cuando marques tus primeros días aparecerá el balance por frente.</p>';
+
+  const nm = addDays(mondayOf(TODAY), 7), nw = week(nm);
+  const nextPlan = isCurWeek && dow(TODAY) >= 4 ? `<section class="block" id="proxima">
+    <div class="block-h"><h2>La próxima semana</h2><span class="hint">Lo importante de la semana que empieza el lunes ${parse(nm).getDate()}.</span></div>
+    <div class="plan3">${[0,1,2].map(i => `<label class="sr" for="pn-${i}">Importante de la próxima semana ${i+1}</label><input type="text" id="pn-${i}" data-bind="plan-next" data-i="${i}" value="${esc(nw.plan.focus[i])}" maxlength="80" placeholder="${i ? 'Otra cosa importante' : 'Lo importante de la próxima semana'}">`).join('')}</div>
+    <label class="sr" for="pnskip">La próxima semana dejo ir</label>
+    <input type="text" id="pnskip" data-bind="skip-next" value="${esc(nw.plan.skip)}" maxlength="120" placeholder="La próxima semana dejo ir…">
+  </section>` : '';
+  const hasReview = Object.values(w.review).some(v => String(v || '').trim());
+  const showReview = S.showReview || pastWeek || dow(TODAY) >= 4 || hasReview;
+
+  return `
+  <section class="dayhead">
+    <div class="wkhead">
+      <button class="navbtn" data-act="week" data-n="-1" aria-label="Semana anterior" ${m <= MIN_MONDAY ? 'disabled' : ''}>‹</button>
+      <h1 class="wktitle">${isCurWeek ? 'Esta semana' : 'Semana'}<span class="hint">${parse(days[0]).getDate()} ${fmtDM(days[0]).split(' ')[1]} – ${fmtDM(days[6])}</span></h1>
+      <button class="navbtn" data-act="week" data-n="1" aria-label="Semana siguiente" ${isCurWeek ? 'disabled' : ''}>›</button>
+    </div>
+    ${!isCurWeek ? '<button class="linkbtn" data-act="day-today">Ir a esta semana</button>' : ''}
+    <p class="meta">Balance ${sc ? pct(sc.overall) + (sc.complete ? '' : ' (en curso)') : '–'} · Sueño ${sl.length ? fmtNum(avg(sl),1) + ' h' : '–'} · Ocio ${fmtMin(ocW)} de ${fmtNum(S.cfg.ocioBudgetH,1)} h</p>
+  </section>
+
+  <section class="block planbox">
+    <div class="block-h"><h2>Lo importante de la semana</h2>${editingPlan ? '<span class="hint">Hasta tres. Aparecen arriba en Hoy toda la semana para que no se pierdan.</span>' : ''}</div>
+    ${planBlock}
+  </section>
+
+  <section class="block" id="entreno">
+    <div class="block-h"><h2>Entrenamiento</h2><span class="hint">Pesas, cardio y yoga repartidos en la semana. Si tu Fitbit registra ejercicio ese día, la sesión se marca sola.</span></div>
+    ${training}
+  </section>
+
+  <section class="block" id="balance">
+    <div class="block-h"><h2>Balance por frente</h2><span class="hint">Qué tanto se sostuvo cada frente esta semana.</span></div>
+    ${balance}
+  </section>
+
+  <section class="block">
+    <div class="block-h"><h2>La semana de un vistazo</h2><span class="hint">Toca una casilla para marcar o desmarcar ese día, o la letra del día para abrirlo en Hoy.</span></div>
+    ${weekGrid(m, w)}
+  </section>
+
+  <section class="block" id="cierre">
+    <div class="block-h"><h2>Cierre de semana</h2><span class="hint">Cinco minutos el domingo. Nadie lo califica.</span></div>
+    ${showReview ? `
+    <div class="stack"><label for="rev-emilia">Un momento con Emilia que quiero recordar</label><textarea id="rev-emilia" data-bind="review" data-k="emilia" maxlength="600">${esc(w.review.emilia)}</textarea></div>
+    <div class="stack"><label for="rev-worked">Qué funcionó</label><textarea id="rev-worked" data-bind="review" data-k="worked" maxlength="600">${esc(w.review.worked)}</textarea></div>
+    <div class="stack"><label for="rev-adjust">Qué ajusto para la próxima</label><textarea id="rev-adjust" data-bind="review" data-k="adjust" maxlength="600">${esc(w.review.adjust)}</textarea></div>`
+    : '<button class="linkbtn" data-act="show-review">Escribir el cierre ahora</button>'}
+  </section>
+  ${nextPlan}`;
+}
+
+function viewObjetivos(){
+  const goals = S.cfg.goals, active = goals.filter(g => g.activo), paused = goals.filter(g => !g.activo);
+  const opts = Object.entries(FRENTES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+  const form = S.goalNew ? `<form class="goalform newgoal" data-form="goal-new">
+      <div class="stack"><label for="g-tipo">Tipo</label><select id="g-tipo" data-bind="goal-tipo">
+        <option value="numero" ${S.goalTipo === 'numero' ? 'selected' : ''}>Un número (ej.: leer 12 libros)</option>
+        <option value="hito" ${S.goalTipo === 'hito' ? 'selected' : ''}>Un hito (se cumple o no)</option>
+        <option value="peso" ${S.goalTipo === 'peso' ? 'selected' : ''}>Peso (de Google Health)</option></select></div>
+      ${S.goalTipo === 'peso' ? '' : `<div class="stack"><label for="g-nombre">Nombre</label><input type="text" id="g-nombre" maxlength="60" placeholder="${S.goalTipo === 'hito' ? 'Ej.: Publicar mi primera app de Claude' : 'Ej.: Leer libros este año'}" required></div>`}
+      ${S.goalTipo === 'hito' ? '' : `<div class="grid2"><div class="stack"><label for="g-meta">${S.goalTipo === 'peso' ? 'Peso meta (kg)' : 'Meta'}</label><input type="number" id="g-meta" step="any" inputmode="decimal" required></div>
+        ${S.goalTipo === 'peso' ? '' : '<div class="stack"><label for="g-unidad">Unidad (opcional)</label><input type="text" id="g-unidad" maxlength="20" placeholder="libros, km, cursos…"></div>'}</div>`}
+      <div class="grid2"><div class="stack"><label for="g-frente">Frente</label><select id="g-frente">${opts}</select></div>
+        <div class="stack"><label for="g-fecha">Para cuándo (opcional)</label><input type="date" id="g-fecha" min="${TODAY}"></div></div>
+      <div class="row"><button class="btn">Crear objetivo</button><button type="button" class="pill" data-act="goal-new">Cancelar</button></div>
+    </form>` : `<button class="pill solid" data-act="goal-new">Nuevo objetivo</button>`;
+  return `
+  <section class="dayhead">
+    <h1>Objetivos</h1>
+    <p class="principle">Pocos y claros. Máximo ${MAX_GOALS} activos: si entra uno nuevo, otro se pausa.</p>
+  </section>
+  <section class="block goals">
+    ${active.length ? active.map(goalCard).join('') : '<p class="empty">No tienes objetivos activos.</p>'}
+  </section>
+  <section class="block">${form}</section>
+  ${paused.length ? `<section class="block"><details class="pausedlist"><summary>En pausa (${paused.length})</summary>${paused.map(goalCard).join('')}</details></section>` : ''}`;
 }
 
 function viewMes(){
@@ -1445,6 +1811,13 @@ function viewAjustes(){
   </section>
 
   <section class="block">
+    <div class="block-h"><h2>Entrenamiento</h2><span class="hint">El plan base y la sesión de cada día. En Semana puedes ver los planes completos.</span></div>
+    <div class="stack"><label for="tr-plan">Plan</label><select id="tr-plan" data-bind="tr-plan"><option value="" ${c.training.plan ? '' : 'selected'}>Sin plan</option>${Object.entries(PLANES).map(([k, p]) => `<option value="${k}" ${c.training.plan === k ? 'selected' : ''}>${esc(p.nombre)}</option>`).join('')}</select></div>
+    ${hasPlan() ? `<ul class="setlist">${DOW_LONG.map((dn, i) => `<li><label for="tr-d${i}" style="flex:0 0 96px">${cap(dn)}</label>
+      <select id="tr-d${i}" data-bind="tr-day" data-i="${i}">${Object.entries(SESIONES).map(([k, v]) => `<option value="${k}" ${c.training.dias[i] === k ? 'selected' : ''}>${esc(v.nombre)}</option>`).join('')}</select></li>`).join('')}</ul>` : ''}
+  </section>
+
+  <section class="block">
     <div class="block-h"><h2>Tipos de ocio</h2><span class="hint">Las opciones que aparecen al anotar ocio. Añade las que uses.</span></div>
     <ul class="setlist">${c.ocioTypes.map(t => `<li>
       <label class="sr" for="ot-l-${esc(t.id)}">Nombre</label><input type="text" id="ot-l-${esc(t.id)}" data-bind="ot-label" data-id="${esc(t.id)}" value="${esc(t.label)}" maxlength="30">
@@ -1495,7 +1868,7 @@ function viewAjustes(){
   </section>`;
 }
 
-const VIEWS = {hoy:viewHoy, mes:viewMes, tendencia:viewTendencia, ajustes:viewAjustes};
+const VIEWS = {hoy:viewHoy, semana:viewSemana, mes:viewMes, objetivos:viewObjetivos, tendencia:viewTendencia, ajustes:viewAjustes};
 
 /* ---------- render ---------- */
 function render(){
@@ -1520,14 +1893,17 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const a = b.dataset.act, id = b.dataset.id;
-  const nav = ['day-today','pick-day','week','month','goto-week','confirm-no','cal-once','cal-perms','fit-retry','fit-perms','to-review','show-review','plan-edit','plan-done'];
+  const nav = ['day-today','pick-day','week','month','goto-week','confirm-no','cal-once','cal-perms','fit-retry','fit-perms','plan-change','goal-new','goal-edit','goal-edit-no','to-review','show-review','plan-edit','plan-done'];
   if (!canEdit() && !nav.includes(a)) return;
   switch (a){
     case 'pick-day': {
       const n = b.dataset.day; if (!(n <= TODAY && n >= MIN_MONDAY)) break;
       if (mondayOf(n) !== mondayOf(S.day)){ S.editPlan = false; S.showReview = false; }
       S.day = n; ensureWatches();
-      if (b.classList.contains('colpick')) setTimeout(() => window.scrollTo({top:0, behavior:'smooth'}), 0);
+      if (b.classList.contains('colpick')){
+        if (S.view !== 'hoy'){ location.hash = 'hoy'; return; }
+        setTimeout(() => window.scrollTo({top:0, behavior:'smooth'}), 0);
+      }
       break;
     }
     case 'day-today': S.day = TODAY; S.editPlan = false; S.showReview = false; ensureWatches(); break;
@@ -1540,6 +1916,33 @@ document.addEventListener('click', e => {
     case 'plan-edit': S.editPlan = true; break;
     case 'plan-done': S.editPlan = false; break;
     case 'show-review': S.showReview = true; break;
+    case 'train-done': {
+      const dd = b.dataset.day; if (dd > TODAY) break;
+      const w = week(mondayOf(dd)), e = Object.assign({}, w.entreno[dd]);
+      e.done = !e.done; e.src = 'manual'; w.entreno[dd] = e; saveWeek(mondayOf(dd)); break;
+    }
+    case 'plan-pick': {
+      const p = PLANES[id]; if (!p) break;
+      S.cfg.training = {plan:id, dias:p.dias.slice()}; S.pickPlan = false; saveCfg();
+      if (S.fit.status === 'ok') fillFromFit(S.fit.days);
+      toast(`Plan «${p.nombre}» elegido. Puedes ajustar cada día en Ajustes.`); break;
+    }
+    case 'plan-change': S.pickPlan = !S.pickPlan; break;
+    case 'goal-new': S.goalNew = !S.goalNew; break;
+    case 'goal-edit': S.goalEdit = id; break;
+    case 'goal-edit-no': S.goalEdit = null; break;
+    case 'goal-toggle': {
+      const g = S.cfg.goals.find(x => x.id === id); if (!g) break;
+      if (!g.activo && S.cfg.goals.filter(x => x.activo).length >= MAX_GOALS){ toast(`Ya tienes ${MAX_GOALS} objetivos activos. Pausa uno antes de activar otro.`); break; }
+      g.activo = !g.activo; saveCfg(); break;
+    }
+    case 'goal-del': S.confirm = 'goal:' + id; break;
+    case 'goal-del-yes': S.cfg.goals = S.cfg.goals.filter(x => x.id !== id); S.confirm = null; saveCfg(); break;
+    case 'goal-step': {
+      const g = S.cfg.goals.find(x => x.id === id); if (!g) break;
+      g.actual = Math.round(((typeof g.actual === 'number' ? g.actual : 0) + (+b.dataset.n)) * 100) / 100; saveCfg(); break;
+    }
+    case 'goal-hito': { const g = S.cfg.goals.find(x => x.id === id); if (!g) break; g.hecho = !g.hecho; g.hecho_fecha = g.hecho ? TODAY : ''; saveCfg(); break; }
     case 'to-review': { const el = document.getElementById('cierre'); if (el) el.scrollIntoView({behavior:'smooth', block:'start'}); return; }
     case 'cal-once': S.cal = {status:'loading'}; calRetried = true; calOnce(S.day); break;
     case 'cal-perms':
@@ -1652,6 +2055,19 @@ document.addEventListener('change', e => {
     case 'cfg': S.cfg[el.dataset.k] = el.value; saveCfg(); break;
     case 'cfg-num': { const v = parseFloat(el.value); if (!isNaN(v)){ S.cfg[el.dataset.k] = Math.max(+el.min, Math.min(+el.max, v)); saveCfg(); } break; }
     case 'an-on': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a){ a.active = el.checked; saveCfg(); } break; }
+    case 'train-swap': {
+      const dd = el.dataset.day, w = week(mondayOf(dd)), e = Object.assign({}, w.entreno[dd]);
+      if (!hasPlan() || !SESIONES[el.value]) break;
+      if (el.value === S.cfg.training.dias[dow(dd)]) delete e.cambio; else e.cambio = el.value;
+      w.entreno[dd] = e; saveWeek(mondayOf(dd)); break;
+    }
+    case 'tr-plan':
+      S.cfg.training = PLANES[el.value] ? {plan:el.value, dias:PLANES[el.value].dias.slice()} : {plan:'', dias:null}; saveCfg();
+      if (S.fit.status === 'ok') fillFromFit(S.fit.days);
+      break;
+    case 'tr-day': { const i = +el.dataset.i; if (hasPlan() && SESIONES[el.value]){ S.cfg.training.dias[i] = el.value; saveCfg(); } break; }
+    case 'goal-tipo': S.goalTipo = el.value; break;
+    case 'goal-actual': { const g = S.cfg.goals.find(x => x.id === el.dataset.id), v = parseFloat(el.value); if (g && !isNaN(v)){ g.actual = v; saveCfg(); } break; }
     case 'ch-on': { const c = S.cfg.chores.find(x => x.id === el.dataset.id); if (c){ c.active = el.checked; saveCfg(); } break; }
     case 'rh-on': { const r = S.cfg.rhythms.find(x => x.id === el.dataset.id); if (r){ r.active = el.checked; saveCfg(); } break; }
     case 'an-area': { const a = S.cfg.anchors.find(x => x.id === el.dataset.id); if (a){ a.area = el.value; saveCfg(); } break; }
@@ -1676,6 +2092,32 @@ document.addEventListener('submit', e => {
   } else if (t === 'anchor'){
     const i = document.getElementById('an-new'), v = i.value.trim(); if (!v) return;
     S.cfg.anchors.push({id:uid36(), label:v, hint:'', area:'salud', active:true}); saveCfg();
+  } else if (t === 'goal-new'){
+    const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+    const tipo = ['peso', 'numero', 'hito'].includes(val('g-tipo')) ? val('g-tipo') : 'numero';
+    const nombre = tipo === 'peso' ? 'Peso' : val('g-nombre').trim(), meta = parseFloat(val('g-meta'));
+    if (!nombre){ toast('Escribe un nombre para el objetivo.'); return; }
+    if (tipo !== 'hito' && isNaN(meta)){ toast('Escribe la meta como número.'); return; }
+    if (tipo === 'peso' && !(meta >= 30 && meta <= 300)){ toast('Escribe un peso meta en kilos, entre 30 y 300.'); return; }
+    const activo = S.cfg.goals.filter(g => g.activo).length < MAX_GOALS;
+    const g = {id:uid36(), tipo, nombre, frente: FRENTES[val('g-frente')] ? val('g-frente') : 'salud', activo, meta: tipo === 'hito' ? null : meta,
+      fecha: val('g-fecha'), unidad: val('g-unidad').trim(), inicio: tipo === 'numero' ? 0 : null, actual: tipo === 'numero' ? 0 : null, hecho:false, creado:TODAY, inicio_fecha:''};
+    if (tipo === 'peso'){ const st = pesoStats(g); if (st){ g.inicio = st.last.peso_kg; g.inicio_fecha = st.last.fecha; } }
+    S.cfg.goals.push(g); S.goalNew = false; saveCfg();
+    toast(activo ? 'Objetivo creado.' : `Objetivo creado en pausa: ya tienes ${MAX_GOALS} activos.`);
+  } else if (t === 'goal-edit'){
+    const g = S.cfg.goals.find(x => x.id === f.dataset.id); if (!g) return;
+    const el = id => document.getElementById(id);
+    if (el('ge-nombre')){ const v = el('ge-nombre').value.trim(); if (!v){ toast('Escribe un nombre.'); return; } g.nombre = v; }
+    if (el('ge-meta')){
+      const v = parseFloat(el('ge-meta').value);
+      if (isNaN(v) || (g.tipo === 'peso' && !(v >= 30 && v <= 300))){ toast(g.tipo === 'peso' ? 'Escribe un peso meta en kilos, entre 30 y 300.' : 'Escribe la meta como número.'); return; }
+      g.meta = v;
+    }
+    g.fecha = el('ge-fecha') ? el('ge-fecha').value : g.fecha;
+    if (!g.creado) g.creado = TODAY;
+    if (g.tipo === 'peso' && typeof g.inicio !== 'number'){ const st = pesoStats(g); if (st){ g.inicio = st.inicio; g.inicio_fecha = st.inicioF; } }
+    S.goalEdit = null; saveCfg(); toast('Objetivo guardado.');
   } else if (t === 'ocio'){
     const dr = S.ocioDraft, h = parseInt(dr.h, 10) || 0, mi = parseInt(dr.m, 10) || 0, min = h * 60 + mi;
     if (h < 0 || mi < 0 || min <= 0){ toast('Escribe cuánto duró: horas, minutos o ambos.'); return; }
@@ -1706,7 +2148,8 @@ document.addEventListener('submit', e => {
 function route(){
   const h = location.hash.slice(1);
   S.view = VIEWS[h] ? h : 'hoy';
-  S.confirm = null;
+  S.confirm = null; S.goalEdit = null;
+  if (S.view === 'objetivos') ensurePesoWatch();
   render(); window.scrollTo(0,0);
 }
 window.addEventListener('hashchange', route);

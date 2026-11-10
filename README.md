@@ -33,10 +33,16 @@ Todo se puede ajustar en **Ajustes**: activar o pausar, renombrar, cambiar metas
 
 ### Secciones
 
-- **Hoy** (día y semana juntos): la tira de los 7 días, lo importante de la semana, la agenda de Google Calendar, las tres prioridades del día, los cinco frentes, pendientes varios, lo hecho, la cuadrícula de la semana (agrupada por frente) y el cierre del domingo.
-- **Mes**: calendario con pagos y cobros, y la revisión de finanzas.
+- **Hoy**: el día. La tira de los 7 días para moverte, lo importante de la semana como recordatorio, la agenda de Google Calendar, las tres prioridades del día, los cinco frentes (en Salud: el entrenamiento del día, el sueño y la actividad de la Fitbit, y el ocio), pendientes varios y lo hecho.
+- **Semana**: lo que se planea y revisa por semana. Lo importante de la semana y lo que dejas ir, el plan de entrenamiento día por día, el balance por frente, la cuadrícula de la semana, el cierre del domingo y, de jueves a domingo, lo importante de la próxima semana.
+- **Mes**: calendario con pagos, cobros y tareas, y la revisión de finanzas.
+- **Objetivos**: máximo 3 activos. Tipos: peso (leído de Google Health, con avance, ritmo de las últimas 4 semanas y fecha estimada), número (por ejemplo, libros leídos) e hito (se cumple o no).
 - **Tendencia**: el año en semanas, la línea de balance de las últimas 12 semanas y el mapa por frente.
-- **Ajustes**: fechas de nacimiento (tuya y de Emilia), metas de sueño y ocio, anclas y ritmos.
+- **Ajustes**: fechas de nacimiento, metas de sueño y ocio, plan de entrenamiento por día, tipos de ocio, anclas, ritmos y hogar.
+
+### Entrenamiento
+
+Tres planes base, editables día por día en Ajustes: **Equilibrado** (6 días: pesas de empuje, tirón y pierna, 2 de cardio y 1 de yoga), **Poco tiempo** (4 días cortos) y **Bajar de peso** (6 días con más cardio). Cada sesión trae su rutina (series y repeticiones, o minutos). En Hoy puedes cambiar la sesión del día. Si la Fitbit registra 15 minutos o más de ejercicio un día con sesión, se marca sola; lo que marcas a mano manda.
 
 ## Cómo empezar (sugerencia)
 
