@@ -170,7 +170,11 @@ function buildDay(fecha, sleeps, steps, azm, am, exercises, rhr) {
 function reasonText(e) {
   if (e instanceof HealthError) {
     if (e.reason === 'ACCOUNT_NOT_LINKED') return 'Tu cuenta de Google no está vinculada a Google Health. Inicia sesión en la app Google Health y vuelve a conectar.';
-    if (e.status === 403) return 'Falta el permiso para este dato. Vuelve a conectar y acepta todos los permisos.';
+    if (e.status === 403) {
+      if (e.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT') return 'Falta el permiso para este dato: vuelve a conectar y marca todas las casillas en Google (403 ACCESS_TOKEN_SCOPE_INSUFFICIENT).';
+      if (e.reason === 'SERVICE_DISABLED') return 'La Google Health API no está habilitada en el proyecto de Google Cloud de este conector (403 SERVICE_DISABLED).';
+      return `Google Health negó el acceso (403${e.reason ? ' ' + e.reason : ''}${e.message ? ': ' + e.message.slice(0, 200) : ''}).`;
+    }
     if (e.status === 401) return 'La autorización expiró. Vuelve a conectar el conector.';
     if (e.status === 429) return 'Google limitó las consultas por un momento. Intenta en unos minutos.';
     return `Google Health respondió ${e.status}${e.reason ? ' (' + e.reason + ')' : ''}.`;
@@ -197,7 +201,11 @@ export async function summaries(at, desde, hasta) {
   const got = {}, missing = {};
   settled.forEach((r, i) => {
     if (r.status === 'fulfilled') got[keys[i]] = r.value;
-    else missing[keys[i]] = reasonText(r.reason);
+    else {
+      missing[keys[i]] = reasonText(r.reason);
+      const e = r.reason || {};
+      console.error('health api error', keys[i], e.status || '', e.reason || '', String(e.message || '').slice(0, 300));
+    }
   });
   // If every call failed for the same auth reason, surface it as one error.
   if (!Object.keys(got).length) {
