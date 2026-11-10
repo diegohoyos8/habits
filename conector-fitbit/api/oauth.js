@@ -1,7 +1,7 @@
 // OAuth 2.1 authorization server for the MCP connector (what claude.ai talks to),
 // backed by Google sign-in. Stateless: every artifact is an encrypted token (lib/seal.js).
 import { seal, open, now, sha256b64u } from '../lib/seal.js';
-import { baseUrl, json, html } from '../lib/http.js';
+import { baseUrl, json, html, escHtml } from '../lib/http.js';
 import { googleAuthUrl, exchangeCode, refreshGoogle, emailFromIdToken, identity, HealthError, SCOPES, hasHealthScope } from '../lib/google.js';
 
 const DEFAULT_REDIRECTS = ['https://claude.ai/api/mcp/auth_callback', 'https://claude.com/api/mcp/auth_callback'];
@@ -50,7 +50,7 @@ async function route(request) {
       case 'authorize': return await authorize(url, origin);
       case 'callback': return await callback(url, origin);
       case 'token': return request.method === 'POST' ? await token(request) : oauthError('invalid_request', 'Usa POST.', 405);
-      case 'home': return html('Mi Fitbit', `<p>Conector MCP de solo lectura para tus datos de Fitbit.</p><p>URL para añadirlo en claude.ai: <code>${origin}/mcp</code></p>`);
+      case 'home': return html('Mi Fitbit', `<p>Conector MCP de solo lectura para tus datos de Fitbit.</p><p>URL para añadirlo en claude.ai: <code>${escHtml(origin)}/mcp</code></p>`);
       default: return json({ error: 'not_found' }, 404);
     }
   } catch (e) {

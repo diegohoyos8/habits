@@ -200,14 +200,14 @@ const SHORT_ROLLUP = new Set(['active-minutes', 'total-calories', 'heart-rate', 
 
 /** Daily rollup over [desde, hasta], split into the per-request range Google allows for the type. */
 async function dailyRoll(at, type, desde, hasta) {
-  const max = SHORT_ROLLUP.has(type) ? 14 : 90, out = [];
+  const max = SHORT_ROLLUP.has(type) ? 14 : 90, chunks = [];
   for (let from = desde; from <= hasta; from = addDays(from, max)) {
     const to = addDays(from, max - 1) < hasta ? addDays(from, max - 1) : hasta;
-    const d = await call(at, 'POST', `dataTypes/${type}/dataPoints:dailyRollUp`,
-      { range: { start: civil(from), end: civil(addDays(to, 1)) }, windowSizeDays: 1 });
-    out.push(...(d.rollupDataPoints || []));
+    chunks.push(call(at, 'POST', `dataTypes/${type}/dataPoints:dailyRollUp`,
+      { range: { start: civil(from), end: civil(addDays(to, 1)) }, windowSizeDays: 1 }));
   }
-  return out;
+  // Chunks run in parallel so a 90-day range costs about one round trip.
+  return (await Promise.all(chunks)).flatMap(d => d.rollupDataPoints || []);
 }
 const dailyList = (at, type, desde, hasta) => {
   const f = type.replace(/-/g, '_');
