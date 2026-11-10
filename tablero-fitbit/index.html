@@ -101,6 +101,12 @@
       <span class="mf-delta" data-draw="d-vfc" data-source="semana" data-field="cambio" data-where="metrica=vfc_ms">—</span>
       <span class="mf-win">Últimos 7 días vs 7 anteriores</span>
     </div>
+    <div class="mf-card" id="card-peso">
+      <h3>Peso</h3>
+      <div><span class="mf-big" data-draw="c-peso" data-source="semana" data-field="ultimo" data-where="metrica=peso_kg">—</span><span class="mf-unit">kg</span></div>
+      <span class="mf-delta" data-draw="d-peso" data-source="semana" data-field="cambio" data-where="metrica=peso_kg">—</span>
+      <span class="mf-win">Última medición · promedio de 7 días vs 7 anteriores</span>
+    </div>
   </section>
 
   <section class="mf-sec" id="sueno">
@@ -136,6 +142,12 @@
     <h2>Ejercicio por semana</h2>
     <p>Minutos de ejercicio registrados cada semana (de lunes a domingo) y número de sesiones.</p>
     <div class="mf-chart" data-draw="ch-ejercicio" data-source="semanas" role="img" aria-label="Minutos de ejercicio por semana"></div>
+  </section>
+
+  <section class="mf-sec" id="peso">
+    <h2>Peso</h2>
+    <p>Cada punto es un día con medición en Google Health. Tu meta y el avance están en Objetivos, en Habitos.</p>
+    <div class="mf-chart" data-draw="ch-peso" data-source="serie" role="img" aria-label="Peso por día con medición"></div>
   </section>
 
   <section class="mf-sec" id="corazon">
@@ -255,12 +267,13 @@ dash.calc('semana', {
       {metrica: 'pulso_reposo', agg: 'mean', skipToday: false, dec: 1},
       {metrica: 'vfc_ms', agg: 'mean', skipToday: false, dec: 1},
       {metrica: 'spo2_pct', agg: 'mean', skipToday: false, dec: 1},
-      {metrica: 'respiracion_rpm', agg: 'mean', skipToday: false, dec: 1}
+      {metrica: 'respiracion_rpm', agg: 'mean', skipToday: false, dec: 1},
+      {metrica: 'peso_kg', agg: 'mean', skipToday: false, dec: 1, min: 1}
     ];
     return spec.map(s => {
       const pool = s.skipToday ? rows.filter(r => r.fecha !== last) : rows;
       const a = pool.slice(-7), b = pool.slice(-14, -7);
-      const agg = (list) => { const v = list.map(r => val(r[s.metrica])).filter(x => x !== null); if (v.length < 3) return null; const t = v.reduce((x, y) => x + y, 0); const r = s.agg === 'sum' ? t : t / v.length; return Math.round(r * 10 ** s.dec) / 10 ** s.dec; };
+      const agg = (list) => { const v = list.map(r => val(r[s.metrica])).filter(x => x !== null); if (v.length < (s.min || 3)) return null; const t = v.reduce((x, y) => x + y, 0); const r = s.agg === 'sum' ? t : t / v.length; return Math.round(r * 10 ** s.dec) / 10 ** s.dec; };
       const u = rows.slice().reverse().find(r => val(r[s.metrica]) !== null);
       const ul = agg(a), pr = agg(b);
       return {metrica: s.metrica, ultimos7: ul, previos7: pr, cambio: ul !== null && pr !== null ? Math.round((ul - pr) * 10 ** s.dec) / 10 ** s.dec : null,
@@ -298,6 +311,7 @@ dash.calc('semana', {
   big('l-sueno', 'sueno_h', 1); big('l-dormir', 'hora_dormir_min', 0, 'ultimos7_txt'); big('l-pasos', 'pasos', 0); big('l-sesiones', 'ejercicios', 0);
   big('c-sueno', 'sueno_h', 1); big('c-dormir', 'hora_dormir_min', 0, 'ultimos7_txt'); big('c-pasos', 'pasos', 0);
   big('c-zona', 'zona_activa_min', 0); big('c-pulso', 'pulso_reposo', 1); big('c-vfc', 'vfc_ms', 1);
+  big('c-peso', 'peso_kg', 1, 'ultimo');
   big('u-pulso', 'pulso_reposo', 0, 'ultimo'); big('u-vfc', 'vfc_ms', 1, 'ultimo'); big('u-spo2', 'spo2_pct', 1, 'ultimo'); big('u-resp', 'respiracion_rpm', 1, 'ultimo');
 
   dash.draw('l-sueno-cmp', el => {
@@ -326,6 +340,7 @@ dash.calc('semana', {
   delta('d-zona', 'zona_activa_min', 0, true, ' min');
   delta('d-pulso', 'pulso_reposo', 1, false, ' lpm');
   delta('d-vfc', 'vfc_ms', 1, true, ' ms');
+  delta('d-peso', 'peso_kg', 1, null, ' kg');
 
   // Shared chart scaffolding.
   function status(el, ids) {
@@ -507,13 +522,13 @@ dash.calc('semana', {
   });
 
   // Small multiples for nightly vitals.
-  const spark = (name, key, unit, dec) => dash.draw(name, el => {
+  const spark = (name, key, unit, dec, height = 110) => dash.draw(name, el => {
     if (!status(el, ['serie'])) return;
     const rows = dash.data('serie').data.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1);
     const pts = rows.map(r => [r.fecha, n(r[key])]).filter(p => p[1] !== null);
     el.replaceChildren();
     if (pts.length < 2) { el.replaceChildren(Object.assign(document.createElement('div'), {className: 'msg', textContent: 'Aún no hay suficientes datos.'})); return; }
-    const W = el.clientWidth, H = 110, dates = rows.map(r => r.fecha);
+    const W = el.clientWidth, H = height, dates = rows.map(r => r.fecha);
     const [a, b] = d3.extent(pts, p => p[1]), pad = Math.max((b - a) * 0.2, dec ? 0.5 : 1);
     const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
     const m = {top: 8, right: 8, bottom: 20, left: measureLeft(svg, [fmt(b + pad, dec)])};
@@ -524,6 +539,7 @@ dash.calc('semana', {
     svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.bottom})`)
       .call(d3.axisBottom(x).tickValues([dates[0], dates[dates.length - 1]]).tickFormat(d => dayName(parseDay(d))).tickSizeOuter(0));
     svg.append('path').datum(pts).attr('fill', 'none').style('stroke', col(0)).attr('stroke-width', 2).attr('d', d3.line().x(p => x(p[0])).y(p => y(p[1])));
+    if (height > 110) svg.append('g').selectAll('circle').data(pts).join('circle').attr('cx', p => x(p[0])).attr('cy', p => y(p[1])).attr('r', 2.5).style('fill', col(0));
     const lastP = pts[pts.length - 1];
     svg.append('circle').attr('cx', x(lastP[0])).attr('cy', y(lastP[1])).attr('r', 3.5).style('fill', col(0));
     const tip = tipLayer(el);
@@ -539,6 +555,7 @@ dash.calc('semana', {
   spark('sp-vfc', 'vfc_ms', 'ms', 1);
   spark('sp-spo2', 'spo2_pct', '%', 1);
   spark('sp-resp', 'respiracion_rpm', 'resp/min', 1);
+  spark('ch-peso', 'peso_kg', 'kg', 1, 200);
 
   // Sessions table, newest first.
   dash.draw('t-sesiones', tb => {

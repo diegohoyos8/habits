@@ -9,7 +9,7 @@
   },
   "datasets/serie": {
     "title": "Serie diaria de tu Fitbit",
-    "description": "Una fila por día con el sueño, la actividad y las señales de salud que registra tu Fitbit Air.",
+    "description": "Una fila por día con el sueño, la actividad, las señales de salud y el peso que registra tu Fitbit Air en Google Health.",
     "source": {
       "kind": "call",
       "connector": "Fit Bit",
