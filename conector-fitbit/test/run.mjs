@@ -69,6 +69,14 @@ globalThis.fetch = async (url, init = {}) => {
       { civilStartTime: { date: { year: 2026, month: 11, day: 7 } }, floors: { countSum: '4' } } ] });
     if (path === 'dataTypes/total-calories/dataPoints:dailyRollUp') return reply({ rollupDataPoints: [
       { civilStartTime: { date: { year: 2026, month: 11, day: 7 } }, totalCalories: { kcalSum: 2412.6 } } ] });
+    if (path.startsWith('dataTypes/weight/dataPoints?')) return reply({ dataPoints: [
+      { weight: { sampleTime: { physicalTime: '2026-11-07T06:30:00Z', utcOffset: '3600s', civilTime: { date: { year: 2026, month: 11, day: 7 }, time: { hours: 7, minutes: 30 } } }, weightGrams: 82450 } },
+      { weight: { sampleTime: { physicalTime: '2026-11-07T20:00:00Z', utcOffset: '3600s', civilTime: { date: { year: 2026, month: 11, day: 7 }, time: { hours: 21 } } }, weightGrams: 82750 } },
+      { weight: { sampleTime: { physicalTime: '2026-11-02T06:30:00Z', utcOffset: '3600s', civilTime: { date: { year: 2026, month: 11, day: 2 }, time: { hours: 7 } } }, weightGrams: 83100 } } ] });
+    if (path.startsWith('dataTypes/body-fat/dataPoints?')) return reply({ dataPoints: [
+      { bodyFat: { sampleTime: { physicalTime: '2026-11-07T06:30:00Z', utcOffset: '3600s', civilTime: { date: { year: 2026, month: 11, day: 7 } } }, percentage: 22.4 } } ] });
+    if (path === 'dataTypes/weight/dataPoints:dailyRollUp') return reply({ rollupDataPoints: [
+      { civilStartTime: { date: { year: 2026, month: 11, day: 7 } }, weight: { weightGramsAvg: 82600 } } ] });
     if (path.startsWith('dataTypes/daily-resting-heart-rate/dataPoints?')) return reply({ dataPoints: [
       { dailyRestingHeartRate: { date: { year: 2026, month: 11, day: 7 }, beatsPerMinute: '58' } } ] });
     return reply({ error: { code: 404, message: 'unexpected ' + path } }, 404);
@@ -144,7 +152,7 @@ r = await call({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocol
 j = await r.json(); assert.equal(j.result.protocolVersion, '2025-06-18'); assert.equal(j.result.serverInfo.name, 'mi-fitbit'); ok('initialize');
 r = await call({ jsonrpc: '2.0', method: 'notifications/initialized' }); assert.equal(r.status, 202); ok('notification accepted');
 r = await call({ jsonrpc: '2.0', id: 2, method: 'tools/list' }); j = await r.json();
-assert.deepEqual(j.result.tools.map(t => t.name), ['resumen_del_dia', 'resumen_de_dias', 'serie_diaria', 'sesiones_ejercicio']);
+assert.deepEqual(j.result.tools.map(t => t.name), ['resumen_del_dia', 'resumen_de_dias', 'serie_diaria', 'pesos', 'sesiones_ejercicio']);
 assert.ok(j.result.tools.every(t => t.annotations.readOnlyHint)); ok('tools/list (read-only)');
 
 healthCalls = [];
@@ -192,7 +200,7 @@ const d7 = ser.rows.find(x => x.fecha === day);
 assert.equal(d7.sueno_h, 7.1); assert.equal(d7.profundo_min, 90); assert.equal(d7.hora_dormir, '23:10'); assert.equal(d7.hora_dormir_min, -50);
 assert.equal(d7.hora_despertar_min, 400); assert.equal(d7.pasos, 8421); assert.equal(d7.ejercicio_min, 33); assert.equal(d7.ejercicios, 1);
 assert.equal(d7.vfc_ms, 41.3); assert.equal(d7.spo2_pct, 95.4); assert.equal(d7.respiracion_rpm, 14.2); assert.equal(d7.vo2max, null);
-assert.equal(d7.distancia_km, 6.12); assert.equal(d7.pisos, 4); assert.equal(d7.calorias, 2413); assert.equal(d7.pulso_reposo, 58);
+assert.equal(d7.peso_kg, 82.6); assert.equal(d7.distancia_km, 6.12); assert.equal(d7.pisos, 4); assert.equal(d7.calorias, 2413); assert.equal(d7.pulso_reposo, 58);
 assert.equal(ser.rows[0].sueno_h, null); assert.equal(ser.rows[0].ejercicios, 0);
 const calCalls = healthCalls.filter(c => c.path === 'dataTypes/total-calories/dataPoints:dailyRollUp').map(c => JSON.parse(c.body).range);
 assert.equal(calCalls.length, 2); assert.deepEqual(calCalls[1].start.date, { year: 2026, month: 11, day: 3 });
@@ -201,6 +209,11 @@ ok('serie_diaria returns flat rows and splits capped rollups into 14-day chunks'
 r = await call({ jsonrpc: '2.0', id: 21, method: 'tools/call', params: { name: 'sesiones_ejercicio', arguments: { desde: '2026-11-01', hasta: '2026-11-07' } } });
 j = await r.json(); assert.deepEqual(j.result.structuredContent.rows, [{ fecha: day, inicio: '08:05', tipo: 'WALKING', nombre: 'Walking', minutos: 33 }]);
 ok('sesiones_ejercicio returns one row per session');
+r = await call({ jsonrpc: '2.0', id: 23, method: 'tools/call', params: { name: 'pesos', arguments: { desde: '2026-01-01', hasta: '2026-11-07' } } });
+j = await r.json();
+assert.deepEqual(j.result.structuredContent.rows, [{ fecha: '2026-11-02', peso_kg: 83.1, grasa_pct: null }, { fecha: day, peso_kg: 82.6, grasa_pct: 22.4 }]);
+assert.ok(healthCalls.some(c => c.path.includes('weight.sample_time.civil_time >= "2026-01-01T00:00:00"')));
+ok('pesos averages each day and joins body fat');
 r = await call({ jsonrpc: '2.0', id: 22, method: 'tools/call', params: { name: 'serie_diaria', arguments: { desde: '2026-01-01', hasta: '2026-11-07' } } });
 j = await r.json(); assert.equal(j.result.isError, true); ok('serie_diaria range limit enforced');
 

@@ -8,6 +8,9 @@ Conector personal y de **solo lectura** que lleva los datos de tu Fitbit (Fitbit
 |---|---|
 | `resumen_del_dia(fecha)` | Sueño de la noche que terminó ese día (horas, hora de acostarse y despertar, etapas, siestas), pasos, minutos en zona activa, minutos activos por nivel, ejercicios y pulso en reposo. |
 | `resumen_de_dias(desde, hasta)` | Lo mismo para un rango de hasta 31 días, para ver tendencias. |
+| `serie_diaria(desde, hasta)` | Una fila por día (hasta 92 días) para gráficas: sueño y fases, horario, actividad, pulso en reposo, VFC, oxígeno, respiración, VO2 máx., distancia, pisos, calorías y peso. |
+| `pesos(desde, hasta)` | Mediciones de peso (y grasa corporal si hay báscula) de hasta 400 días. |
+| `sesiones_ejercicio(desde, hasta)` | Una fila por sesión de ejercicio (hasta 92 días). |
 
 Un valor `null` significa que no hay dato (por ejemplo, no llevabas puesta la pulsera). `noDisponible` dice qué dato no se pudo leer y por qué.
 

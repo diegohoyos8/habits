@@ -304,7 +304,8 @@ export async function dailySeries(at, desde, hasta) {
     vo2max: dailyList(at, 'daily-vo2-max', desde, hasta),
     distancia: dailyRoll(at, 'distance', desde, hasta),
     pisos: dailyRoll(at, 'floors', desde, hasta),
-    calorias: dailyRoll(at, 'total-calories', desde, hasta)
+    calorias: dailyRoll(at, 'total-calories', desde, hasta),
+    peso: dailyRoll(at, 'weight', desde, hasta)
   };
   const keys = Object.keys(jobs), settled = await Promise.allSettled(Object.values(jobs)), got = {}, missing = { ...base.noDisponible };
   settled.forEach((r, i) => {
@@ -324,6 +325,7 @@ export async function dailySeries(at, desde, hasta) {
   const dist = byCivil(got.distancia, 'distance', v => round((int(v.millimetersSum) || 0) / 1e6, 2));
   const floors = byCivil(got.pisos, 'floors', v => int(v.countSum));
   const kcal = byCivil(got.calorias, 'totalCalories', v => Math.round(Number(v.kcalSum) || 0));
+  const peso = byCivil(got.peso, 'weight', v => v.weightGramsAvg ? round(Number(v.weightGramsAvg) / 1000, 1) : null);
 
   const rows = base.dias.map(d => {
     const s = d.sueno && !d.sueno.sinRegistro ? d.sueno : null;
@@ -359,10 +361,30 @@ export async function dailySeries(at, desde, hasta) {
       vo2max: get(vo2, d.fecha),
       distancia_km: got.distancia ? get(dist, d.fecha) : null,
       pisos: got.pisos ? get(floors, d.fecha) : null,
-      calorias: got.calorias ? get(kcal, d.fecha) : null
+      calorias: got.calorias ? get(kcal, d.fecha) : null,
+      peso_kg: got.peso ? get(peso, d.fecha) : null
     };
   });
   return { rows, noDisponible: missing };
+}
+
+/** Weight (and body fat when a scale records it), one row per day with a measurement, oldest first. */
+export async function weights(at, desde, hasta) {
+  const end = addDays(hasta, 1);
+  const range = f => `${f}.sample_time.civil_time >= "${desde}T00:00:00" AND ${f}.sample_time.civil_time < "${end}T00:00:00"`;
+  const [w, bf] = await Promise.allSettled([listAll(at, 'weight', range('weight'), 10), listAll(at, 'body-fat', range('body_fat'), 10)]);
+  if (w.status === 'rejected') throw w.reason;
+  const dayOf = st => (st && st.civilTime && ymd(st.civilTime.date)) || (st ? local(st.physicalTime, st.utcOffset).date : '');
+  const days = new Map();
+  const add = (d, k, v) => { if (!d || v === null || isNaN(v)) return; const e = days.get(d) || { fecha: d, peso: [], grasa: [] }; e[k].push(v); days.set(d, e); };
+  for (const p of w.value) if (p.weight) add(dayOf(p.weight.sampleTime), 'peso', Number(p.weight.weightGrams) / 1000);
+  if (bf.status === 'fulfilled') for (const p of bf.value) if (p.bodyFat) add(dayOf(p.bodyFat.sampleTime), 'grasa', Number(p.bodyFat.percentage));
+  const mean = a => a.length ? round(a.reduce((x, y) => x + y, 0) / a.length, 1) : null;
+  const rows = [...days.values()].filter(e => e.fecha >= desde && e.fecha <= hasta)
+    .map(e => ({ fecha: e.fecha, peso_kg: mean(e.peso), grasa_pct: mean(e.grasa) }))
+    .filter(r => r.peso_kg !== null || r.grasa_pct !== null)
+    .sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+  return { rows };
 }
 
 /** One row per exercise session in [desde, hasta]. */
