@@ -66,4 +66,7 @@ Tres planes base, editables día por día en Ajustes: **Equilibrado** (6 días: 
   - muestra pasos, ejercicios y pulso en reposo en el frente Salud.
 
   Lo que corriges a mano manda: la pulsera no lo vuelve a cambiar. Un enlace permite volver al dato de la Fitbit.
+- El peso de *Objetivos* llega del mismo conector con la herramienta `pesos` (último año de mediciones).
+- El repositorio guarda también el tablero de tendencias **Mi Fitbit** (`tablero-fitbit/`), un Artifact aparte que usa `serie_diaria` y `sesiones_ejercicio`.
+- Vercel solo vuelve a desplegar el conector cuando cambia algo dentro de `conector-fitbit/`.
 - Abierta fuera de claude.ai, la página funciona en modo de vista previa (sin guardar, sin agenda y sin Fitbit).
