@@ -174,4 +174,12 @@ assert.equal(r.status, 400); ok('bad refresh token rejected');
 r = await oauth.GET(req('/.well-known/oauth-protected-resource/mcp'));
 assert.equal((await r.json()).resource, B + '/mcp'); ok('path-based routing');
 
+// 10. Without TOKEN_SECRET the key derives from GOOGLE_CLIENT_SECRET (fresh module instance).
+delete process.env.TOKEN_SECRET;
+const seal2 = await import('../lib/seal.js?fallback');
+const t = await seal2.seal({ k: 'x', v: 1 });
+assert.equal((await seal2.open(t, 'x')).v, 1);
+assert.equal(await (await import('../lib/seal.js')).open(t, 'x'), null); // different key than TOKEN_SECRET
+ok('key falls back to the Google client secret');
+
 console.log(`\n${passed} checks passed`);

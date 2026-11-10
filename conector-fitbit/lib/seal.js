@@ -8,8 +8,12 @@ let keyPromise = null;
 function key() {
   if (!keyPromise) {
     keyPromise = (async () => {
-      const secret = process.env.TOKEN_SECRET || '';
-      if (secret.length < 32) throw new Error('TOKEN_SECRET debe tener al menos 32 caracteres.');
+      // TOKEN_SECRET is optional: without it the key derives from the Google client secret, which is
+      // already secret. Rotating either one signs everyone out, which only means reconnecting once.
+      const own = process.env.TOKEN_SECRET || '';
+      const secret = own || (process.env.GOOGLE_CLIENT_SECRET ? 'google:' + process.env.GOOGLE_CLIENT_SECRET : '');
+      if (own && own.length < 32) throw new Error('TOKEN_SECRET debe tener al menos 32 caracteres.');
+      if (!secret) throw new Error('Falta GOOGLE_CLIENT_SECRET (o TOKEN_SECRET).');
       const raw = await crypto.subtle.digest('SHA-256', enc.encode('conector-fitbit:v1:' + secret));
       return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']);
     })();

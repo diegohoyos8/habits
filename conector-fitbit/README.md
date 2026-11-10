@@ -15,7 +15,7 @@ Un valor `null` significa que no hay dato (por ejemplo, no llevabas puesta la pu
 
 - Servidor MCP sin dependencias, desplegado como funciones de Vercel (`api/mcp.js`, `api/oauth.js`).
 - claude.ai se conecta con OAuth. El conector hace de intermediario con el inicio de sesión de Google y **solo acepta tu cuenta** (`ALLOWED_EMAIL`).
-- No hay base de datos. Los tokens que entrega el conector están cifrados (AES-256-GCM con `TOKEN_SECRET`) y solo él puede leerlos. Los datos de salud no se guardan: se piden a Google en cada consulta.
+- No hay base de datos. Los tokens que entrega el conector están cifrados (AES-256-GCM, con `TOKEN_SECRET` o, si no existe, una clave derivada de `GOOGLE_CLIENT_SECRET`) y solo él puede leerlos. Los datos de salud no se guardan: se piden a Google en cada consulta.
 - Pide solo permisos de lectura: `googlehealth.sleep.readonly`, `googlehealth.activity_and_fitness.readonly` y `googlehealth.health_metrics_and_measurements.readonly`.
 
 ## Puesta en marcha
@@ -40,11 +40,11 @@ Crea un proyecto desde este repositorio con **Root Directory** = `conector-fitbi
 |---|---|
 | `GOOGLE_CLIENT_ID` | El Client ID de Google |
 | `GOOGLE_CLIENT_SECRET` | El Client secret de Google (secreto) |
-| `TOKEN_SECRET` | Texto aleatorio de 32 caracteres o más, por ejemplo la salida de `openssl rand -base64 48` (secreto) |
+| `TOKEN_SECRET` | Opcional. Texto aleatorio de 32 caracteres o más. Si no lo pones, la clave se deriva de `GOOGLE_CLIENT_SECRET`. |
 | `ALLOWED_EMAIL` | Tu correo de Google |
 | `BASE_URL` | Opcional: `https://TU-DOMINIO` si usas un dominio propio |
 
-Los dos valores secretos se escriben directamente en Vercel; no hace falta pegarlos en ningún chat.
+Los valores secretos se escriben directamente en Vercel; no hace falta pegarlos en ningún chat.
 
 ### 4. claude.ai
 En *Configuración → Conectores → Añadir conector personalizado*:
