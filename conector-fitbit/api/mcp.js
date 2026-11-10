@@ -1,11 +1,11 @@
 // MCP server over Streamable HTTP (stateless JSON responses). Read-only tools.
 import { open } from '../lib/seal.js';
 import { baseUrl, json } from '../lib/http.js';
-import { summaries, isDate, addDays, daysBetween, HealthError } from '../lib/google.js';
+import { summaries, dailySeries, sessions, isDate, addDays, daysBetween, HealthError } from '../lib/google.js';
 
 const PROTOCOLS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 const SERVER = { name: 'mi-fitbit', title: 'Mi Fitbit', version: '1.0.0' };
-const MAX_DAYS = 31;
+const MAX_DAYS = 31, MAX_SERIES_DAYS = 92;
 
 const DAY_SHAPE = 'Cada día trae: sueno (la noche que terminó ese día: horas, minutosDormido, minutosEnCama, acostado, despierto, etapas en minutos y siestas; sinRegistro si no hubo), pasos, minutosZonaActiva, minutosActivos por nivel, ejercicios (inicio, tipo, nombre, minutos) y pulsoReposo. Un valor null significa sin dato (por ejemplo, la pulsera no se llevó puesta). noDisponible explica qué datos no se pudieron leer.';
 
@@ -34,6 +34,28 @@ const TOOLS = [
       },
       required: ['desde', 'hasta'],
       additionalProperties: false
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true }
+  },
+  {
+    name: 'serie_diaria',
+    title: 'Serie diaria para gráficas',
+    description: `Una fila plana por día en un rango de hasta ${MAX_SERIES_DAYS} días, pensada para gráficas de tendencia. Columnas: fecha; sueno_h, sueno_min, cama_min, profundo_min, ligero_min, rem_min, despierto_min (la noche que terminó ese día), hora_dormir y hora_despertar (HH:MM), hora_dormir_min (minutos desde medianoche, negativos antes de medianoche), hora_despertar_min, siestas_min; pasos, zona_activa_min, activo_ligero_min, activo_moderado_min, activo_vigoroso_min, ejercicio_min, ejercicios; pulso_reposo, vfc_ms (variabilidad de la frecuencia cardiaca), spo2_pct, respiracion_rpm, vo2max; distancia_km, pisos, calorias. null = sin dato.`,
+    inputSchema: {
+      type: 'object',
+      properties: { desde: { type: 'string', description: 'Primer día, AAAA-MM-DD.' }, hasta: { type: 'string', description: 'Último día, AAAA-MM-DD.' } },
+      required: ['desde', 'hasta'], additionalProperties: false
+    },
+    annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true }
+  },
+  {
+    name: 'sesiones_ejercicio',
+    title: 'Sesiones de ejercicio',
+    description: `Una fila por sesión de ejercicio registrada en un rango de hasta ${MAX_SERIES_DAYS} días: fecha, inicio (HH:MM), tipo, nombre y minutos.`,
+    inputSchema: {
+      type: 'object',
+      properties: { desde: { type: 'string', description: 'Primer día, AAAA-MM-DD.' }, hasta: { type: 'string', description: 'Último día, AAAA-MM-DD.' } },
+      required: ['desde', 'hasta'], additionalProperties: false
     },
     annotations: { readOnlyHint: true, openWorldHint: false, idempotentHint: true }
   }
@@ -115,10 +137,11 @@ async function callTool(params, googleToken) {
   if (params.name === 'resumen_del_dia') {
     if (!isDate(args.fecha)) return toolError('fecha debe tener el formato AAAA-MM-DD.');
     desde = hasta = args.fecha;
-  } else if (params.name === 'resumen_de_dias') {
+  } else if (['resumen_de_dias', 'serie_diaria', 'sesiones_ejercicio'].includes(params.name)) {
+    const max = params.name === 'resumen_de_dias' ? MAX_DAYS : MAX_SERIES_DAYS;
     if (!isDate(args.desde) || !isDate(args.hasta)) return toolError('desde y hasta deben tener el formato AAAA-MM-DD.');
     if (args.hasta < args.desde) return toolError('hasta no puede ser anterior a desde.');
-    if (daysBetween(args.desde, args.hasta) >= MAX_DAYS) return toolError(`El rango máximo es de ${MAX_DAYS} días.`);
+    if (daysBetween(args.desde, args.hasta) >= max) return toolError(`El rango máximo es de ${max} días.`);
     desde = args.desde; hasta = args.hasta;
   } else {
     return toolError(`Herramienta desconocida: ${params.name}`);
@@ -126,8 +149,16 @@ async function callTool(params, googleToken) {
   if (desde > addDays(new Date().toISOString().slice(0, 10), 1)) return toolError('Esa fecha está en el futuro.');
 
   try {
-    const r = await summaries(googleToken, desde, hasta);
-    const result = params.name === 'resumen_del_dia' ? { ...r.dias[0], noDisponible: r.noDisponible } : r;
+    let result;
+    if (params.name === 'serie_diaria') {
+      const r = await dailySeries(googleToken, desde, hasta);
+      result = Object.keys(r.noDisponible).length ? r : { rows: r.rows };
+    } else if (params.name === 'sesiones_ejercicio') {
+      result = await sessions(googleToken, desde, hasta);
+    } else {
+      const r = await summaries(googleToken, desde, hasta);
+      result = params.name === 'resumen_del_dia' ? { ...r.dias[0], noDisponible: r.noDisponible } : { dias: r.dias, noDisponible: r.noDisponible };
+    }
     return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result };
   } catch (e) {
     if (e instanceof HealthError && e.reason === 'ACCOUNT_NOT_LINKED') {

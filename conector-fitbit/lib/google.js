@@ -196,19 +196,35 @@ function reasonText(e) {
   return 'No se pudo leer este dato.';
 }
 
-/** Summaries for each day in [desde, hasta], inclusive. Six API calls whatever the range. */
+const SHORT_ROLLUP = new Set(['active-minutes', 'total-calories', 'heart-rate', 'calories-in-heart-rate-zone']);
+
+/** Daily rollup over [desde, hasta], split into the per-request range Google allows for the type. */
+async function dailyRoll(at, type, desde, hasta) {
+  const max = SHORT_ROLLUP.has(type) ? 14 : 90, out = [];
+  for (let from = desde; from <= hasta; from = addDays(from, max)) {
+    const to = addDays(from, max - 1) < hasta ? addDays(from, max - 1) : hasta;
+    const d = await call(at, 'POST', `dataTypes/${type}/dataPoints:dailyRollUp`,
+      { range: { start: civil(from), end: civil(addDays(to, 1)) }, windowSizeDays: 1 });
+    out.push(...(d.rollupDataPoints || []));
+  }
+  return out;
+}
+const dailyList = (at, type, desde, hasta) => {
+  const f = type.replace(/-/g, '_');
+  return listAll(at, type, `${f}.date >= "${desde}" AND ${f}.date < "${addDays(hasta, 1)}"`, 10);
+};
+
+/** Summaries for each day in [desde, hasta], inclusive. */
 export async function summaries(at, desde, hasta) {
   const end = addDays(hasta, 1);
-  const range = { start: civil(desde), end: civil(end) };
-  const roll = type => call(at, 'POST', `dataTypes/${type}/dataPoints:dailyRollUp`, { range, windowSizeDays: 1 })
-    .then(d => d.rollupDataPoints || []);
+  const roll = type => dailyRoll(at, type, desde, hasta);
   const jobs = {
-    sueno: listAll(at, 'sleep', `sleep.interval.civil_end_time >= "${desde}T00:00:00" AND sleep.interval.civil_end_time < "${end}T00:00:00"`),
+    sueno: listAll(at, 'sleep', `sleep.interval.civil_end_time >= "${desde}T00:00:00" AND sleep.interval.civil_end_time < "${end}T00:00:00"`, 10),
     pasos: roll('steps'),
     minutosZonaActiva: roll('active-zone-minutes'),
     minutosActivos: roll('active-minutes'),
-    ejercicios: listAll(at, 'exercise', `exercise.interval.civil_start_time >= "${desde}" AND exercise.interval.civil_start_time < "${end}"`),
-    pulsoReposo: listAll(at, 'daily-resting-heart-rate', `daily_resting_heart_rate.date >= "${desde}" AND daily_resting_heart_rate.date < "${end}"`)
+    ejercicios: listAll(at, 'exercise', `exercise.interval.civil_start_time >= "${desde}" AND exercise.interval.civil_start_time < "${end}"`, 10),
+    pulsoReposo: dailyList(at, 'daily-resting-heart-rate', desde, hasta)
   };
   const keys = Object.keys(jobs);
   const settled = await Promise.allSettled(Object.values(jobs));
@@ -269,5 +285,96 @@ export async function summaries(at, desde, hasta) {
 
   const dias = [];
   for (let d = desde; d <= hasta; d = addDays(d, 1)) dias.push(buildDay(d, sleeps, steps, azm, am, exercises, rhr));
-  return { dias, noDisponible: missing };
+  return { dias, noDisponible: missing, sleeps, exercises };
+}
+
+const round = (v, d = 1) => v === null || v === undefined || isNaN(v) ? null : Math.round(v * 10 ** d) / 10 ** d;
+const toMin = hhmm => { const m = /^(\d{2}):(\d{2})$/.exec(hhmm || ''); return m ? +m[1] * 60 + +m[2] : null; };
+
+/**
+ * One flat row per day, for charts: sleep and its stages, activity, resting heart rate and the
+ * nightly vitals (HRV, SpO2, breathing), VO2 max, distance, floors and calories. Null = no data.
+ */
+export async function dailySeries(at, desde, hasta) {
+  const base = await summaries(at, desde, hasta);
+  const jobs = {
+    vfc: dailyList(at, 'daily-heart-rate-variability', desde, hasta),
+    spo2: dailyList(at, 'daily-oxygen-saturation', desde, hasta),
+    respiracion: dailyList(at, 'daily-respiratory-rate', desde, hasta),
+    vo2max: dailyList(at, 'daily-vo2-max', desde, hasta),
+    distancia: dailyRoll(at, 'distance', desde, hasta),
+    pisos: dailyRoll(at, 'floors', desde, hasta),
+    calorias: dailyRoll(at, 'total-calories', desde, hasta)
+  };
+  const keys = Object.keys(jobs), settled = await Promise.allSettled(Object.values(jobs)), got = {}, missing = { ...base.noDisponible };
+  settled.forEach((r, i) => {
+    if (r.status === 'fulfilled') got[keys[i]] = r.value;
+    else {
+      missing[keys[i]] = reasonText(r.reason);
+      const e = r.reason || {};
+      console.error('health api error', keys[i], e.status || '', e.reason || '', String(e.message || '').slice(0, 300));
+    }
+  });
+  const byDate = (rows, field, pick) => new Map((rows || []).map(p => p[field]).filter(Boolean).map(v => [ymd(v.date), pick(v)]));
+  const byCivil = (rows, field, pick) => new Map((rows || []).filter(r => r[field]).map(r => [ymd(r.civilStartTime && r.civilStartTime.date), pick(r[field])]));
+  const vfc = byDate(got.vfc, 'dailyHeartRateVariability', v => round(v.averageHeartRateVariabilityMilliseconds));
+  const spo2 = byDate(got.spo2, 'dailyOxygenSaturation', v => round(v.averagePercentage));
+  const resp = byDate(got.respiracion, 'dailyRespiratoryRate', v => round(v.breathsPerMinute));
+  const vo2 = byDate(got.vo2max, 'dailyVo2Max', v => round(v.vo2Max));
+  const dist = byCivil(got.distancia, 'distance', v => round((int(v.millimetersSum) || 0) / 1e6, 2));
+  const floors = byCivil(got.pisos, 'floors', v => int(v.countSum));
+  const kcal = byCivil(got.calorias, 'totalCalories', v => Math.round(Number(v.kcalSum) || 0));
+
+  const rows = base.dias.map(d => {
+    const s = d.sueno && !d.sueno.sinRegistro ? d.sueno : null;
+    const bed = s ? toMin(s.acostado) : null, wake = s ? toMin(s.despierto) : null;
+    const am = d.minutosActivos || {}, ex = d.ejercicios || [];
+    const get = (m, k) => m && m.has(k) ? m.get(k) : null;
+    return {
+      fecha: d.fecha,
+      sueno_h: s ? s.horas : null,
+      sueno_min: s ? s.minutosDormido : null,
+      cama_min: s ? s.minutosEnCama : null,
+      profundo_min: s && s.etapas ? s.etapas.profundo : null,
+      ligero_min: s && s.etapas ? s.etapas.ligero : null,
+      rem_min: s && s.etapas ? s.etapas.rem : null,
+      despierto_min: s && s.etapas ? s.etapas.despierto : null,
+      hora_dormir: s ? s.acostado : null,
+      // Minutes from midnight: negative before midnight (23:10 → -50), positive after (01:25 → 85).
+      hora_dormir_min: bed === null ? null : (bed >= 720 ? bed - 1440 : bed),
+      hora_despertar: s ? s.despierto : null,
+      hora_despertar_min: wake,
+      siestas_min: s ? s.minutosSiestas : null,
+      pasos: d.pasos,
+      zona_activa_min: d.minutosZonaActiva,
+      activo_ligero_min: d.minutosActivos ? (am.light ?? 0) : null,
+      activo_moderado_min: d.minutosActivos ? (am.moderate ?? 0) : null,
+      activo_vigoroso_min: d.minutosActivos ? (am.vigorous ?? 0) : null,
+      ejercicio_min: d.ejercicios ? ex.reduce((t, e) => t + (e.minutos || 0), 0) : null,
+      ejercicios: d.ejercicios ? ex.length : null,
+      pulso_reposo: d.pulsoReposo,
+      vfc_ms: get(vfc, d.fecha),
+      spo2_pct: get(spo2, d.fecha),
+      respiracion_rpm: get(resp, d.fecha),
+      vo2max: get(vo2, d.fecha),
+      distancia_km: got.distancia ? get(dist, d.fecha) : null,
+      pisos: got.pisos ? get(floors, d.fecha) : null,
+      calorias: got.calorias ? get(kcal, d.fecha) : null
+    };
+  });
+  return { rows, noDisponible: missing };
+}
+
+/** One row per exercise session in [desde, hasta]. */
+export async function sessions(at, desde, hasta) {
+  const end = addDays(hasta, 1);
+  const pts = await listAll(at, 'exercise', `exercise.interval.civil_start_time >= "${desde}" AND exercise.interval.civil_start_time < "${end}"`, 10);
+  const rows = pts.map(p => p.exercise).filter(Boolean).map(e => {
+    const iv = e.interval || {}, s = local(iv.startTime, iv.startUtcOffset);
+    return {
+      fecha: s.date, inicio: s.time, tipo: e.exerciseType || 'OTHER', nombre: e.displayName || '',
+      minutos: durMin(e.activeDuration) ?? Math.round((Date.parse(iv.endTime) - Date.parse(iv.startTime)) / 60000)
+    };
+  }).filter(r => r.fecha >= desde && r.fecha <= hasta).sort((a, b) => (a.fecha + a.inicio < b.fecha + b.inicio ? -1 : 1));
+  return { rows };
 }
