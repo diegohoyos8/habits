@@ -215,6 +215,7 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .kind{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:999px;margin-right:6px}
 .kind.pago{background:var(--ember-soft);color:var(--ember)}
 .kind.cobro{background:var(--lake-soft);color:var(--lake)}
+.kind.tarea{background:var(--cell);color:var(--ink)}
 .late{color:var(--ember);font-weight:700}
 .pill{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:14px;white-space:nowrap}
 .pill[aria-pressed="true"]{background:var(--lake);border-color:var(--lake);color:var(--on-lake)}
@@ -280,6 +281,8 @@ table.matrix{border-collapse:collapse;width:100%;min-width:340px;font-size:14px}
 .cal .m.cobro{border:1.5px solid var(--lake)}
 .cal .m.pago.ok{background:var(--ember)}
 .cal .m.cobro.ok{background:var(--lake)}
+.cal .m.tarea{border:1.5px solid var(--muted)}
+.cal .m.tarea.ok{background:var(--muted)}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);align-items:center}
 .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
 .kdform{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
@@ -985,7 +988,8 @@ function upcoming(from){
   return out.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
 }
 const whenText = dd => dd < 0 ? `<span class="late">hace ${-dd} ${-dd === 1 ? 'día' : 'días'}</span>` : dd === 0 ? 'hoy' : dd === 1 ? 'mañana' : `en ${dd} días`;
-const kdLabel = (kd, ok) => kd.kind === 'cobro' ? (ok ? 'Cobrado' : 'Marcar cobrado') : (ok ? 'Pagado' : 'Marcar pagado');
+const kdLabel = (kd, ok) => kd.kind === 'cobro' ? (ok ? 'Cobrado' : 'Marcar cobrado') : kd.kind === 'tarea' ? (ok ? 'Hecho' : 'Marcar hecho') : (ok ? 'Pagado' : 'Marcar pagado');
+const kindName = k => k === 'cobro' ? 'Cobro' : k === 'tarea' ? 'Tarea' : 'Pago';
 
 /* ---------- views ---------- */
 function banner(){
@@ -1261,7 +1265,7 @@ function dateRow(u){
   const kd = u.kd;
   return `<li>
     <span class="when"><b>${parse(u.date).getDate()}</b><small>${fmtDM(u.date).split(' ')[1] || ''}</small></span>
-    <span class="what"><span class="kind ${kd.kind}">${kd.kind === 'cobro' ? 'Cobro' : 'Pago'}</span>${esc(kd.name)}
+    <span class="what"><span class="kind ${kd.kind}">${kindName(kd.kind)}</span>${esc(kd.name)}
       <small>${whenText(u.dd)}${kd.amount ? ' · ' + esc(kd.amount) : ''}</small></span>
     <button class="pill" data-act="kd" data-id="${kd.id}" data-k="${u.k}" aria-pressed="${u.ok}">${kdLabel(kd, u.ok)}</button>
   </li>`;
@@ -1283,14 +1287,15 @@ function viewMes(){
     const conf = S.confirm === 'kd:' + kd.id;
     return `<li>
       <span class="when"><b>${parse(date).getDate()}</b><small>${DOW_LONG[dow(date)].slice(0,3)}</small></span>
-      <span class="what"><span class="kind ${kd.kind}">${kd.kind === 'cobro' ? 'Cobro' : 'Pago'}</span>${esc(kd.name)}
+      <span class="what"><span class="kind ${kd.kind}">${kindName(kd.kind)}</span>${esc(kd.name)}
         <small>${k === monthKey(TODAY) && !ok ? whenText(dd) : ''}${kd.amount ? (k === monthKey(TODAY) && !ok ? ' · ' : '') + esc(kd.amount) : ''}</small></span>
       ${conf ? `<button class="pill danger" data-act="kd-del-yes" data-id="${kd.id}">Eliminar</button><button class="pill" data-act="confirm-no">Cancelar</button>`
              : `<button class="pill" data-act="kd" data-id="${kd.id}" data-k="${k}" aria-pressed="${ok}">${kdLabel(kd, ok)}</button>
                 <button class="x pill" data-act="kd-del" data-id="${kd.id}" aria-label="Eliminar ${esc(kd.name)}">×</button>`}
     </li>`;
   }).join('');
-  const pagos = kds.filter(x => x.kind !== 'cobro'), cobros = kds.filter(x => x.kind === 'cobro');
+  const pagos = kds.filter(x => x.kind === 'pago' || !x.kind), cobros = kds.filter(x => x.kind === 'cobro'), tareas = kds.filter(x => x.kind === 'tarea');
+  const count = (list, word) => list.length ? `${list.filter(x => mo.done[x.id]).length} de ${list.length} ${word}` : '';
   return `
   <section class="dayhead">
     <div class="weeknav">
@@ -1298,12 +1303,12 @@ function viewMes(){
       <h1>${fmtMonth(k)}</h1>
       <button class="navbtn" data-act="month" data-n="1" aria-label="Mes siguiente" ${k >= MAX_MONTH ? 'disabled' : ''}>›</button>
     </div>
-    ${kds.length ? `<p class="hint">${pagos.filter(x => mo.done[x.id]).length} de ${pagos.length} pagos hechos · ${cobros.filter(x => mo.done[x.id]).length} de ${cobros.length} cobros recibidos</p>` : ''}
+    ${kds.length ? `<p class="hint">${[count(pagos, 'pagos hechos'), count(cobros, 'cobros recibidos'), count(tareas, 'tareas hechas')].filter(Boolean).join(' · ')}</p>` : ''}
   </section>
 
   <section class="block">
     <div class="cal" role="img" aria-label="Calendario de ${fmtMonth(k)} con fechas clave">${cells}</div>
-    <div class="legend"><span><i style="border:1.5px solid var(--ember)"></i>Pago</span><span><i style="border:1.5px solid var(--lake)"></i>Cobro</span><span><i style="background:var(--muted)"></i>Relleno = hecho</span></div>
+    <div class="legend"><span><i style="border:1.5px solid var(--ember)"></i>Pago</span><span><i style="border:1.5px solid var(--lake)"></i>Cobro</span><span><i style="border:1.5px solid var(--muted)"></i>Tarea</span><span><i style="background:var(--muted)"></i>Relleno = hecho</span></div>
   </section>
 
   <section class="block">
@@ -1312,7 +1317,7 @@ function viewMes(){
     <form class="kdform" data-form="kd">
       <div class="stack wide"><label for="kd-name">Nombre</label><input type="text" id="kd-name" maxlength="60" placeholder="Ej.: Renta del departamento" required></div>
       <div class="stack"><label for="kd-day">Día del mes</label><input type="number" id="kd-day" min="1" max="31" inputmode="numeric" placeholder="5" required></div>
-      <div class="stack"><label for="kd-kind">Tipo</label><select id="kd-kind"><option value="pago">Pago</option><option value="cobro">Cobro</option></select></div>
+      <div class="stack"><label for="kd-kind">Tipo</label><select id="kd-kind"><option value="pago">Pago</option><option value="cobro">Cobro</option><option value="tarea">Tarea</option></select></div>
       <div class="stack full"><label for="kd-amount">Monto o nota (opcional)</label><input type="text" id="kd-amount" maxlength="60" placeholder="Ej.: $850 · transferencia"></div>
       <div class="full"><button class="btn">Añadir fecha</button></div>
     </form>

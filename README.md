@@ -23,7 +23,7 @@ Los hábitos se agrupan en cinco **frentes**. Cada uno tiene anclas diarias, rit
 |---|---|
 | **Salud** | Meditar, moverme, comer bien (diario); horas de sueño; salir a la naturaleza (1×); ocio elegido con límite de 10 h por semana. |
 | **Social** | Jugar con Emilia (diario); llamar a mis papás y mandar fotos de Emilia (2×); escribir a un amigo lejos (2×); compartir con amigos cerca (1×). |
-| **Finanzas** | Trabajo profundo (5×); revisar finanzas personales (1×); actualizar CV y LinkedIn (1×); fechas clave de pagos y cobros. |
+| **Finanzas** | Trabajo profundo (5×); revisar finanzas personales (1×); actualizar CV y LinkedIn (1×); fechas clave del mes (pagos, cobros y tareas como los cierres de Kakebo). |
 | **Desarrollo** | Leer con foco (diario); proyecto creativo (2×); aprender: cursos de IA (2×); construir mis apps de Claude (2×). |
 | **Hogar** | Limpieza en días fijos (aspirar, trapear y WC los lunes y jueves); hacer la compra (1×). |
 
