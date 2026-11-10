@@ -11,6 +11,8 @@ process.env.BASE_URL = 'https://mi-fitbit.example.app';
 const B = process.env.BASE_URL;
 const idToken = email => 'h.' + Buffer.from(JSON.stringify({ email, email_verified: true })).toString('base64url') + '.s';
 let tokenEmail = 'yo@example.com', healthCalls = [], refreshCount = 0;
+const ALL_SCOPES = 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/googlehealth.sleep.readonly https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly';
+let tokenScope = ALL_SCOPES;
 
 // ---- Google mock (shapes taken from the Google Health API docs) ----
 const day = '2026-11-07';
@@ -22,7 +24,7 @@ globalThis.fetch = async (url, init = {}) => {
     if (f.get('grant_type') === 'authorization_code') {
       assert.equal(f.get('code'), 'google-code');
       assert.equal(f.get('redirect_uri'), B + '/callback');
-      return reply({ access_token: 'g-at-1', refresh_token: 'g-rt-1', expires_in: 3599, id_token: idToken(tokenEmail) });
+      return reply({ access_token: 'g-at-1', refresh_token: 'g-rt-1', expires_in: 3599, id_token: idToken(tokenEmail), scope: tokenScope });
     }
     if (f.get('grant_type') === 'refresh_token') {
       refreshCount++;
@@ -105,6 +107,10 @@ tokenEmail = 'otra@example.com';
 r = await oauth.GET(req('/api/oauth?route=callback&' + new URLSearchParams({ code: 'google-code', state: g.searchParams.get('state') })));
 assert.equal(r.status, 403); ok('callback refuses other Google accounts');
 tokenEmail = 'yo@example.com';
+tokenScope = 'openid https://www.googleapis.com/auth/userinfo.email';
+r = await oauth.GET(req('/api/oauth?route=callback&' + new URLSearchParams({ code: 'google-code', state: g.searchParams.get('state') })));
+assert.equal(r.status, 400); assert.match(await r.text(), /permisos de salud/); ok('callback refuses a grant without health scopes');
+tokenScope = ALL_SCOPES;
 r = await oauth.GET(req('/api/oauth?route=callback&' + new URLSearchParams({ code: 'google-code', state: g.searchParams.get('state') })));
 assert.equal(r.status, 302);
 const back = new URL(r.headers.get('location'));

@@ -2,7 +2,7 @@
 // backed by Google sign-in. Stateless: every artifact is an encrypted token (lib/seal.js).
 import { seal, open, now, sha256b64u } from '../lib/seal.js';
 import { baseUrl, json, html } from '../lib/http.js';
-import { googleAuthUrl, exchangeCode, refreshGoogle, emailFromIdToken, identity, HealthError } from '../lib/google.js';
+import { googleAuthUrl, exchangeCode, refreshGoogle, emailFromIdToken, identity, HealthError, SCOPES } from '../lib/google.js';
 
 const DEFAULT_REDIRECTS = ['https://claude.ai/api/mcp/auth_callback', 'https://claude.com/api/mcp/auth_callback'];
 const allowedRedirects = () => [
@@ -120,6 +120,14 @@ async function callback(url, origin) {
   const email = emailFromIdToken(g.id_token);
   if (!allowed || email !== allowed) {
     return html('Cuenta no autorizada', '<p>Este conector es personal y solo acepta la cuenta de Google configurada en <code>ALLOWED_EMAIL</code>.</p>', 403);
+  }
+  // Google may grant only part of what was asked (unchecked boxes, or scopes not declared under Data Access).
+  const granted = String(g.scope || '').split(/\s+/);
+  const health = SCOPES.filter(sc => sc.includes('googlehealth'));
+  if (g.scope && !health.some(sc => granted.includes(sc))) {
+    return html('Google no concedió los permisos de salud', `<p>La conexión se hizo, pero sin acceso a tus datos de salud.</p>
+<ol><li>En Google Cloud, en <b>Google Auth Platform → Acceso a los datos</b>, agrega los tres permisos de la Google Health API que terminan en <code>.readonly</code> y guarda.</li>
+<li>Vuelve a conectar desde claude.ai y, en la pantalla de Google, <b>marca todas las casillas</b>.</li></ol>`, 400);
   }
   if (!g.refresh_token) {
     return html('Falta un permiso', '<p>Google no entregó acceso permanente. Quita el acceso de esta app en tu cuenta de Google (Seguridad → Apps de terceros) y vuelve a conectar.</p>', 400);
