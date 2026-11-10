@@ -174,12 +174,25 @@ assert.equal(r.status, 400); ok('bad refresh token rejected');
 r = await oauth.GET(req('/.well-known/oauth-protected-resource/mcp'));
 assert.equal((await r.json()).resource, B + '/mcp'); ok('path-based routing');
 
+// 10a. Missing configuration is reported, not crashed on (fresh module instances, no Google secret).
+{
+  const saved = { s: process.env.GOOGLE_CLIENT_SECRET, t: process.env.TOKEN_SECRET };
+  delete process.env.GOOGLE_CLIENT_SECRET; delete process.env.TOKEN_SECRET;
+  const o2 = await import('../api/oauth.js?nocfg');
+  const r1 = await o2.POST(req('/api/oauth?route=register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ redirect_uris: [CB] }) }));
+  assert.equal(r1.status, 503); assert.match((await r1.json()).error_description, /GOOGLE_CLIENT_SECRET/);
+  process.env.GOOGLE_CLIENT_SECRET = saved.s; process.env.TOKEN_SECRET = saved.t;
+  ok('missing configuration answers 503 with the missing variables');
+}
+
 // 10. Without TOKEN_SECRET the key derives from GOOGLE_CLIENT_SECRET (fresh module instance).
 delete process.env.TOKEN_SECRET;
-const seal2 = await import('../lib/seal.js?fallback');
+const seal2 = await import('../lib/seal.js');
 const t = await seal2.seal({ k: 'x', v: 1 });
 assert.equal((await seal2.open(t, 'x')).v, 1);
-assert.equal(await (await import('../lib/seal.js')).open(t, 'x'), null); // different key than TOKEN_SECRET
+process.env.TOKEN_SECRET = 'y'.repeat(48);
+assert.equal(await seal2.open(t, 'x'), null); // a different secret cannot open it
+delete process.env.TOKEN_SECRET;
 ok('key falls back to the Google client secret');
 
 console.log(`\n${passed} checks passed`);

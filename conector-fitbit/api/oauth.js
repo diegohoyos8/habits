@@ -10,6 +10,7 @@ const allowedRedirects = () => [
   ...String(process.env.EXTRA_REDIRECT_URIS || '').split(',').map(s => s.trim()).filter(Boolean)
 ];
 const oauthError = (error, description, status = 400) => json({ error, error_description: description }, status);
+const missingConfig = () => ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'ALLOWED_EMAIL'].filter(k => !process.env[k]).join(', ');
 
 export async function GET(request) { return route(request); }
 export async function POST(request) { return route(request); }
@@ -44,15 +45,22 @@ async function route(request) {
         code_challenge_methods_supported: ['S256'],
         token_endpoint_auth_methods_supported: ['none']
       });
-      case 'register': return request.method === 'POST' ? register(request) : oauthError('invalid_request', 'Usa POST.', 405);
-      case 'authorize': return authorize(url, origin);
-      case 'callback': return callback(url, origin);
-      case 'token': return request.method === 'POST' ? token(request) : oauthError('invalid_request', 'Usa POST.', 405);
+      // `return await` keeps async failures inside this try/catch.
+      case 'register': return request.method === 'POST' ? await register(request) : oauthError('invalid_request', 'Usa POST.', 405);
+      case 'authorize': return await authorize(url, origin);
+      case 'callback': return await callback(url, origin);
+      case 'token': return request.method === 'POST' ? await token(request) : oauthError('invalid_request', 'Usa POST.', 405);
       case 'home': return html('Mi Fitbit', `<p>Conector MCP de solo lectura para tus datos de Fitbit.</p><p>URL para añadirlo en claude.ai: <code>${origin}/mcp</code></p>`);
       default: return json({ error: 'not_found' }, 404);
     }
   } catch (e) {
     console.error('oauth error', e && e.message);
+    if (missingConfig()) {
+      const msg = `Al conector le falta configuración en Vercel: ${missingConfig()}.`;
+      return routeName(url) === 'authorize' || routeName(url) === 'callback'
+        ? html('Falta configurar el conector', `<p>${msg} Añade esas variables de entorno en el proyecto de Vercel y vuelve a desplegar.</p>`, 503)
+        : oauthError('temporarily_unavailable', msg, 503);
+    }
     return oauthError('server_error', 'Error interno del conector.', 500);
   }
 }

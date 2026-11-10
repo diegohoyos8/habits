@@ -30,11 +30,11 @@ En el teléfono, abre la app **Google Health** (o Fitbit), inicia sesión con tu
    - **Branding**: nombre de la app "Mi Fitbit" y tu correo.
    - **Audience**: tipo *External*, estado *Testing*. En **Test users**, añade tu correo.
    - **Data Access**: añade los tres permisos `googlehealth.*.readonly` de arriba.
-   - **Clients**: crea un cliente OAuth de tipo *Web application*. En *Authorized redirect URIs*, pon `https://TU-DOMINIO/callback`, donde TU-DOMINIO es el de Vercel.
+   - **Clients**: crea un cliente OAuth de tipo *Web application*. En *Authorized redirect URIs*, pon `https://mi-fitbit.vercel.app/callback`.
 4. Copia el **Client ID** y el **Client secret**.
 
 ### 3. Vercel
-Crea un proyecto desde este repositorio con **Root Directory** = `conector-fitbit` y estas variables de entorno:
+El proyecto ya existe: **mi-fitbit** (`https://mi-fitbit.vercel.app`), conectado a este repositorio con **Root Directory** = `conector-fitbit`; cada push a la rama principal lo vuelve a publicar. En *Settings → Environment Variables* añade:
 
 | Variable | Valor |
 |---|---|
@@ -42,14 +42,14 @@ Crea un proyecto desde este repositorio con **Root Directory** = `conector-fitbi
 | `GOOGLE_CLIENT_SECRET` | El Client secret de Google (secreto) |
 | `TOKEN_SECRET` | Opcional. Texto aleatorio de 32 caracteres o más. Si no lo pones, la clave se deriva de `GOOGLE_CLIENT_SECRET`. |
 | `ALLOWED_EMAIL` | Tu correo de Google |
-| `BASE_URL` | Opcional: `https://TU-DOMINIO` si usas un dominio propio |
+| `BASE_URL` | Opcional, solo si usas un dominio propio |
 
 Los valores secretos se escriben directamente en Vercel; no hace falta pegarlos en ningún chat.
 
 ### 4. claude.ai
 En *Configuración → Conectores → Añadir conector personalizado*:
 - Nombre: **Mi Fitbit** (*Semanas contadas* lo busca con este nombre exacto).
-- URL: `https://TU-DOMINIO/mcp`
+- URL: `https://mi-fitbit.vercel.app/mcp`
 
 Pulsa **Conectar** y acepta los permisos en Google.
 
