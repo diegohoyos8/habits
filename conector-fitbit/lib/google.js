@@ -83,6 +83,18 @@ async function call(at, method, path, body) {
   return data;
 }
 
+/** Scopes actually carried by an access token (Google tokeninfo). Returns short names, or null if unknown. */
+export async function grantedScopes(at) {
+  try {
+    const res = await fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(at));
+    if (!res.ok) return null;
+    const body = await res.json();
+    return String(body.scope || '').split(/\s+/).filter(Boolean).map(sc => sc.replace('https://www.googleapis.com/auth/', ''));
+  } catch {
+    return null;
+  }
+}
+
 export async function identity(at) {
   return call(at, 'GET', 'identity');
 }
@@ -207,6 +219,14 @@ export async function summaries(at, desde, hasta) {
       console.error('health api error', keys[i], e.status || '', e.reason || '', String(e.message || '').slice(0, 300));
     }
   });
+  // On a scope error, report which scopes the token really has, so a bad grant is easy to tell apart.
+  if (settled.some(r => r.status === 'rejected' && r.reason && r.reason.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT')) {
+    const scopes = await grantedScopes(at);
+    if (scopes) {
+      missing.permisosConcedidos = scopes.join(', ') || '(ninguno)';
+      console.error('token scopes', scopes.filter(sc => sc.startsWith('googlehealth')).length, 'health scopes of', scopes.length);
+    }
+  }
   // If every call failed for the same auth reason, surface it as one error.
   if (!Object.keys(got).length) {
     const first = settled[0].reason;

@@ -124,6 +124,7 @@ async function callback(url, origin) {
   // Google may grant only part of what was asked (unchecked boxes, or scopes not declared under Data Access).
   const granted = String(g.scope || '').split(/\s+/);
   const health = SCOPES.filter(sc => sc.includes('googlehealth'));
+  console.log('callback: google granted', health.filter(sc => granted.includes(sc)).length, 'of', health.length, 'health scopes; scope field', g.scope ? 'present' : 'absent');
   if (g.scope && !health.some(sc => granted.includes(sc))) {
     return html('Google no concedió los permisos de salud', `<p>La conexión se hizo, pero sin acceso a tus datos de salud.</p>
 <ol><li>En Google Cloud, en <b>Google Auth Platform → Acceso a los datos</b>, agrega los tres permisos de la Google Health API que terminan en <code>.readonly</code> y guarda.</li>

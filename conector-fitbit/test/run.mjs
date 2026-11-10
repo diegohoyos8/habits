@@ -60,6 +60,7 @@ globalThis.fetch = async (url, init = {}) => {
       { dailyRestingHeartRate: { date: { year: 2026, month: 11, day: 7 }, beatsPerMinute: '58' } } ] });
     return reply({ error: { code: 404, message: 'unexpected ' + path } }, 404);
   }
+  if (url.startsWith('https://oauth2.googleapis.com/tokeninfo?')) return reply({ scope: 'openid https://www.googleapis.com/auth/userinfo.email', expires_in: 3000 });
   throw new Error('Unexpected fetch ' + url);
 };
 
@@ -151,6 +152,7 @@ assert.deepEqual(s.sueno.etapas, { profundo: 90, ligero: 120, rem: 225, despiert
 assert.equal(s.sueno.siestas, 1); assert.equal(s.sueno.minutosSiestas, 25);
 assert.equal(s.pasos, 8421); assert.equal(s.minutosZonaActiva, 28);
 assert.equal(s.minutosActivos, null); assert.match(s.noDisponible.minutosActivos, /ACCESS_TOKEN_SCOPE_INSUFFICIENT/);
+assert.equal(s.noDisponible.permisosConcedidos, 'openid, userinfo.email');
 assert.deepEqual(s.ejercicios, [{ inicio: '08:05', tipo: 'WALKING', nombre: 'Walking', minutos: 33 }]);
 assert.equal(s.pulsoReposo, 58);
 assert.equal(JSON.parse(j.result.content[0].text).pasos, 8421);
