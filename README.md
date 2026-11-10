@@ -48,10 +48,16 @@ Todo se puede ajustar en **Ajustes**: activar o pausar, renombrar, cambiar metas
 ## Detalles técnicos
 
 - Un solo archivo HTML (`semanas-contadas.html`), sin dependencias más allá de dos fuentes de Google Fonts.
-- Se publica como Artifact de claude.ai con las capacidades `db`, `user` y `mcp`. Los datos viven en `data/users/<tu id>/`, privado por persona:
+- Se publica como Artifact de claude.ai con las capacidades `db`, `user` y `mcp` (Google Calendar y Fit Bit). Los datos viven en `data/users/<tu id>/`, privado por persona:
   - `config`: anclas, ritmos, fechas clave y metas.
   - `w-AAAA-MM-DD`: un documento por semana (clave = lunes), con los días, los ritmos, el plan y el cierre.
   - `m-AAAA-MM`: un documento por mes con pagos y cobros marcados y la revisión de finanzas.
   - `todo`: la lista de pendientes varios.
 - La agenda usa la capacidad `mcp` con el conector **Google Calendar**, solo con la herramienta de lectura `list_events`. La página nunca crea ni modifica eventos. La primera vez, claude.ai pide permiso para que la página lea el calendario; se puede revocar desde el menú Permisos de la página.
-- Abierta fuera de claude.ai, la página funciona en modo de vista previa (sin guardar y sin agenda).
+- El sueño y el movimiento llegan de la Fitbit Air a través del conector **Fit Bit** (carpeta `conector-fitbit/`, publicado en `https://mi-fitbit.vercel.app`), con la herramienta de lectura `resumen_de_dias`. La página lee la semana que estás viendo y:
+  - llena "Dormí anoche" con las horas dormidas (con hora de acostarte y despertar);
+  - marca "Moverme" si hubo un ejercicio de 10 minutos o más, o 20 minutos en zona activa;
+  - muestra pasos, ejercicios y pulso en reposo en el frente Salud.
+
+  Lo que corriges a mano manda: la pulsera no lo vuelve a cambiar. Un enlace permite volver al dato de la Fitbit.
+- Abierta fuera de claude.ai, la página funciona en modo de vista previa (sin guardar, sin agenda y sin Fitbit).

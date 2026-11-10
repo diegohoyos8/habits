@@ -140,6 +140,13 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .fscore{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .sub{display:flex;flex-direction:column;gap:8px}
 
+/* fitbit */
+.ftag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--lake-soft);color:var(--lake);vertical-align:1px}
+.fitline{font-size:15px;font-variant-numeric:tabular-nums}
+.fitstats{display:flex;flex-wrap:wrap;gap:6px 18px;font-variant-numeric:tabular-nums}
+.fitstats span b{font-weight:700}
+.anchor .ftag{margin-top:4px}
+
 /* agenda */
 .agenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .agenda li{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--line);align-items:baseline}
@@ -440,7 +447,7 @@ const fmtDM = s => new Intl.DateTimeFormat('es',{day:'numeric',month:'short'}).f
 const fmtMonth = ym => cap(new Intl.DateTimeFormat('es',{month:'long',year:'numeric'}).format(parse(ym+'-01')));
 const fmtNum = (n,d=0) => n.toLocaleString('es',{maximumFractionDigits:d,minimumFractionDigits:0});
 const fmtMin = m => { if (!m) return '0 min'; const h = Math.floor(m/60), r = m%60; return h ? `${h} h${r ? ' '+r : ''}` : `${r} min`; };
-const fmtSleep = v => v === 9 ? '9+' : v === 5 ? '≤5' : String(v).replace('.5','½');
+const fmtSleep = v => v === 9 ? '9+' : v === 5 ? '≤5' : Number.isInteger(v * 2) ? String(v).replace('.5','½') : fmtNum(v, 1);
 const pct = v => `${Math.round(v*100)} %`;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const uid36 = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -465,7 +472,8 @@ const S = {
   view:'hoy', day:TODAY, month:monthKey(TODAY), editPlan:false, showReview:false,
   ready:false, mode:'connecting', confirm:null,
   cal:{status:'idle'}, todo:{items:[]},
-  ocioPick:null, ocioDraft:{h:'', m:'', q:''}
+  ocioPick:null, ocioDraft:{h:'', m:'', q:''},
+  fit:{status:'idle'}
 };
 
 function normCfg(c){
@@ -620,7 +628,10 @@ function subscribe(){
   const got = {cfg:false, weeks:false, months:false, todo:false};
   const timer = setTimeout(() => { if (!S.ready){ S.mode = 'slow'; render(); } }, 10000);
   const ready = changed => {
-    if (!S.ready && got.cfg && got.weeks && got.months && got.todo){ S.ready = true; S.mode = 'ok'; clearTimeout(timer); changed = true; }
+    if (!S.ready && got.cfg && got.weeks && got.months && got.todo){
+      S.ready = true; S.mode = 'ok'; clearTimeout(timer); changed = true;
+      if (S.fit.status === 'ok') fillFromFit(S.fit.days);
+    }
     if (changed) render();
   };
   const fail = e => {
@@ -684,6 +695,7 @@ async function connectCal(){
   const [m, p] = await Promise.all([cl.use('mcp').catch(() => null), cl.use('permissions').catch(() => null)]);
   if (!m){ S.cal = {status:'off'}; render(); return; }
   mcp = m; perms = p;
+  ensureFitWatch();
   const st = p ? await p.state('mcp:' + CAL).catch(() => 'unavailable') : 'prompt';
   if (st === 'denied'){ S.cal = {status:'denied'}; render(); return; }
   ensureCalWatch(); render();
@@ -732,6 +744,99 @@ function calOnce(d){
     r => { if (calKey === d) applyCal(r); },
     e => { if (calKey === d){ calRetried = true; calError(e, d); } });
 }
+/* ---------- Fitbit (mcp capability, read-only "Fit Bit" connector) ---------- */
+const FIT = 'Fit Bit';
+let fitUnsub = null, fitKey = null;
+const FIT_MSG = {
+  needs_reauth:'La conexión con tu Fitbit caducó. Vuelve a conectar Fit Bit en claude.ai, en Configuración → Conectores.',
+  server_not_connected:'Conecta Fit Bit en claude.ai, en Configuración → Conectores, para llenar sueño y movimiento solos.',
+  server_not_found:'Conecta Fit Bit en claude.ai, en Configuración → Conectores, para llenar sueño y movimiento solos.',
+  selection_required:'Tienes más de un conector llamado Fit Bit. Elige cuál usar en el aviso de claude.ai.',
+  not_in_manifest:'Esta página no tiene permiso para leer tu Fitbit.',
+  consent_required:'Esta página no tiene permiso para leer tu Fitbit.',
+  blocked_by_policy:'Tu organización no permite usar este conector aquí.',
+  tool_error:'Tu Fitbit no respondió esta vez.'
+};
+/** Watch the selected week (up to today) from the Fitbit connector. */
+function ensureFitWatch(){
+  if (!mcp) return;
+  const m = mondayOf(S.day), end = addDays(m, 6) < TODAY ? addDays(m, 6) : TODAY, key = m + ':' + end;
+  if (fitKey === key) return;
+  if (fitUnsub){ fitUnsub(); fitUnsub = null; }
+  fitKey = key;
+  if (S.fit.status !== 'ok') S.fit = {status:'loading', days:{}};
+  fitUnsub = mcp.watchTool(FIT, 'resumen_de_dias', {desde:m, hasta:end}, ev => {
+    if (fitKey !== key) return;
+    if (ev.type === 'data') applyFit(ev.result);
+    else {
+      const code = (ev.error && ev.error.code) || 'upstream_error';
+      if (S.fit.status !== 'ok' || CAL_RETRACT.includes(code)) S.fit = {status:'error', code, days:{}};
+      if (S.view === 'hoy') render();
+    }
+  }, {cache:{staleTime:300000, gcTime:3600000}, refetchInterval:900000});
+}
+function ensureWatches(){ ensureCalWatch(); ensureFitWatch(); }
+function applyFit(res){
+  const p = res && res.payload, dias = p && Array.isArray(p.dias) ? p.dias : [], days = {};
+  for (const f of dias) if (f && typeof f.fecha === 'string') days[f.fecha] = f;
+  S.fit = {status:'ok', days, at: res && res.cache && res.cache.storedAt ? res.cache.storedAt : Date.now()};
+  const wrote = S.ready && canEdit() ? fillFromFit(days) : false;
+  if (S.view === 'hoy' || wrote) render();
+}
+/** Copy Fitbit data into the days it covers. Manual entries always win; writes only what changed. */
+function fillFromFit(days){
+  const touched = new Set(), mover = S.cfg.anchors.find(a => a.id === 'mover' && a.active);
+  for (const [d, f] of Object.entries(days)){
+    if (d > TODAY || d < MIN_MONDAY) continue;
+    const x = day(d), m = mondayOf(d);
+    const sue = f.sueno && typeof f.sueno.minutosDormido === 'number' ? f.sueno : null;
+    if (sue && x.sleepSrc !== 'manual'){
+      const v = Math.round(sue.minutosDormido / 6) / 10;
+      if (x.sleep !== v || x.sleepSrc !== 'fitbit'){ x.sleep = v; x.sleepSrc = 'fitbit'; touched.add(m); }
+    }
+    const ex = Array.isArray(f.ejercicios) ? f.ejercicios : [];
+    const exMin = ex.reduce((t, e) => t + (e.minutos || 0), 0), azm = f.minutosZonaActiva || 0;
+    const aSrc = x.aSrc || {};
+    if (mover && (exMin >= 10 || azm >= 20) && !x.a.mover && aSrc.mover !== 'manual'){
+      x.a.mover = true; x.aSrc = Object.assign({}, aSrc, {mover:'fitbit'}); touched.add(m);
+    }
+    const fit = {
+      pasos: typeof f.pasos === 'number' ? f.pasos : null,
+      azm: typeof f.minutosZonaActiva === 'number' ? f.minutosZonaActiva : null,
+      ej: ex.map(e => ({n: String(e.nombre || e.tipo || 'Ejercicio'), m: e.minutos || 0, i: String(e.inicio || '')})),
+      rhr: typeof f.pulsoReposo === 'number' ? f.pulsoReposo : null,
+      sue: sue ? {min: sue.minutosDormido, a: String(sue.acostado || ''), d: String(sue.despierto || '')} : null
+    };
+    if (stable(fit) !== stable(x.fit || null)){ x.fit = fit; touched.add(m); }
+  }
+  for (const m of touched) saveWeek(m);
+  return touched.size > 0;
+}
+const fmtHM = min => { const h = Math.floor(min / 60), r = min % 60; return h ? `${h} h${r ? ' ' + pad(r) : ''}` : `${r} min`; };
+function fitBlock(x){
+  const f = x.fit, st = S.fit;
+  let status = '';
+  if (st.status === 'error'){
+    const msg = FIT_MSG[st.code] || 'No pude leer tu Fitbit ahora.';
+    const btn = (st.code === 'not_in_manifest' || st.code === 'consent_required') && perms ? ' <button class="linkbtn" data-act="fit-perms">Permitir</button>'
+      : !['needs_reauth','server_not_connected','server_not_found','blocked_by_policy','selection_required'].includes(st.code) ? ' <button class="linkbtn" data-act="fit-retry">Reintentar</button>' : '';
+    status = `<p class="hint">${msg}${btn}</p>`;
+  } else if (st.status === 'loading' && !f) status = '<p class="hint">Leyendo tu Fitbit…</p>';
+  else if (st.status === 'ok') status = `<p class="meta">Fitbit actualizado a las ${hm(new Date(st.at))}</p>`;
+  if (!f && st.status === 'off') return '';
+  if (!f && !status) return '';
+  const parts = [];
+  if (f){
+    if (f.pasos !== null) parts.push(`<span><b>${fmtNum(f.pasos)}</b> pasos</span>`);
+    if (f.azm !== null) parts.push(`<span><b>${f.azm}</b> min en zona activa</span>`);
+    for (const e of f.ej) parts.push(`<span><b>${esc(e.n)}</b> ${fmtMin(e.m)}${e.i ? ' a las ' + esc(e.i) : ''}</span>`);
+    if (f.rhr !== null) parts.push(`<span>pulso en reposo <b>${f.rhr}</b></span>`);
+  }
+  return `<div class="sub"><p class="label">Actividad <span class="ftag">Fitbit</span></p>
+    ${parts.length ? `<div class="fitstats">${parts.join('')}</div>` : (f ? '<p class="hint">Sin actividad registrada ese día.</p>' : '')}
+    ${status}</div>`;
+}
+
 const hm = t => new Intl.DateTimeFormat('es',{hour:'2-digit',minute:'2-digit'}).format(t);
 const calStamp = () => `${S.cal.stale ? 'No se pudo actualizar; muestro lo último que cargó. ' : ''}Actualizado a las ${hm(new Date(S.cal.at))}`;
 const CAL_MSG = {
@@ -941,8 +1046,9 @@ function frontsBlock(d){
   const up = upcoming(d), chores = choresFor(d), allChores = activeChores();
 
   const anchorGrid = list => list.length ? `<div class="sub"><p class="label">Cada día</p><div class="anchors">
-      ${list.map(a => `<button class="anchor" data-act="anchor" data-id="${a.id}" aria-pressed="${!!x.a[a.id]}">
-        <span class="a-label"><span class="tick"></span>${esc(a.label)}</span>${a.hint ? `<span class="a-hint">${esc(a.hint)}</span>` : ''}</button>`).join('')}
+      ${list.map(a => { const auto = x.a[a.id] && x.aSrc && x.aSrc[a.id] === 'fitbit';
+        return `<button class="anchor" data-act="anchor" data-id="${a.id}" aria-pressed="${!!x.a[a.id]}">
+        <span class="a-label"><span class="tick"></span>${esc(a.label)}</span>${a.hint ? `<span class="a-hint">${esc(a.hint)}</span>` : ''}${auto ? '<span class="ftag">Marcado por tu Fitbit</span>' : ''}</button>`; }).join('')}
     </div></div>` : '';
   const rhythmList = list => list.length ? `<div class="sub"><p class="label">Esta semana, sin día fijo</p><ul class="rhythms">
       ${list.map(r => { const arr = w.rhythms[r.id] || [], on = arr.includes(d), n = arr.length;
@@ -951,7 +1057,12 @@ function frontsBlock(d){
           <span class="dots" aria-label="${n} de ${r.target}">${dots(n, r.target)}</span></button></li>`; }).join('')}
     </ul></div>` : '';
 
+  const fs = x.fit && x.fit.sue;
+  const sleepLine = x.sleepSrc === 'fitbit' && fs
+    ? `<p class="fitline"><span class="ftag">Fitbit</span> ${fmtHM(fs.min)} dormido${fs.a && fs.d ? ` · de ${esc(fs.a)} a ${esc(fs.d)}` : ''}</p>`
+    : x.sleepSrc === 'manual' && fs ? `<button class="linkbtn" data-act="sleep-fit">Usar el dato de Fitbit (${fmtHM(fs.min)})</button>` : '';
   const sleep = `<div class="sub sleepbox"><p class="label">Dormí anoche</p>
+      ${sleepLine}
       <div class="chips">${SLEEP_OPTS.map(([v,l]) => `<button class="chip" data-act="sleep" data-v="${v}" aria-pressed="${x.sleep === v}">${l}</button>`).join('')}</div>
       <p class="meta">Meta: ${fmtNum(S.cfg.sleepTarget,1)} h${sl.length ? ` · promedio de la semana: ${fmtNum(avg(sl),1)} h` : ''}</p></div>`;
 
@@ -987,7 +1098,7 @@ function frontsBlock(d){
       : `<p class="empty">${isToday ? 'Hoy' : 'Ese día'} no toca limpieza.${nextChore(d) ? ' Lo próximo: ' + esc(nextChore(d)) + '.' : ''}</p>`}
   </div>` : '';
 
-  const extras = {salud:{before:sleep, after:ocio}, finanzas:{after:dates}, hogar:{before:cleaning}};
+  const extras = {salud:{before:sleep + fitBlock(x), after:ocio}, finanzas:{after:dates}, hogar:{before:cleaning}};
   return Object.keys(FRENTES).map(f => {
     const an = activeAnchors().filter(a => a.area === f), rh = activeRhythms().filter(r => r.area === f), ex = extras[f] || {};
     if (!an.length && !rh.length && !ex.before && !ex.after) return '';
@@ -1403,21 +1514,21 @@ function toast(msg){ const t = document.getElementById('toast'); t.textContent =
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
   const a = b.dataset.act, id = b.dataset.id;
-  const nav = ['day-today','pick-day','week','month','goto-week','confirm-no','cal-once','cal-perms','to-review','show-review','plan-edit','plan-done'];
+  const nav = ['day-today','pick-day','week','month','goto-week','confirm-no','cal-once','cal-perms','fit-retry','fit-perms','to-review','show-review','plan-edit','plan-done'];
   if (!canEdit() && !nav.includes(a)) return;
   switch (a){
     case 'pick-day': {
       const n = b.dataset.day; if (!(n <= TODAY && n >= MIN_MONDAY)) break;
       if (mondayOf(n) !== mondayOf(S.day)){ S.editPlan = false; S.showReview = false; }
-      S.day = n; ensureCalWatch();
+      S.day = n; ensureWatches();
       if (b.classList.contains('colpick')) setTimeout(() => window.scrollTo({top:0, behavior:'smooth'}), 0);
       break;
     }
-    case 'day-today': S.day = TODAY; S.editPlan = false; S.showReview = false; ensureCalWatch(); break;
+    case 'day-today': S.day = TODAY; S.editPlan = false; S.showReview = false; ensureWatches(); break;
     case 'week': {
       // Same weekday in the previous or next week, never past today.
       let n = addDays(S.day, 7 * b.dataset.n); if (n > TODAY) n = TODAY;
-      if (n >= MIN_MONDAY){ S.day = n; S.editPlan = false; S.showReview = false; ensureCalWatch(); }
+      if (n >= MIN_MONDAY){ S.day = n; S.editPlan = false; S.showReview = false; ensureWatches(); }
       break;
     }
     case 'plan-edit': S.editPlan = true; break;
@@ -1435,7 +1546,7 @@ document.addEventListener('click', e => {
     case 'month': { const n = shiftMonth(S.month, +b.dataset.n); if (n >= MIN_MONTH && n <= MAX_MONTH) S.month = n; break; }
     case 'goto-week': {
       const m = b.dataset.m; if (m < MIN_MONDAY) break;
-      S.day = addDays(m, 6) > TODAY ? TODAY : addDays(m, 6); S.editPlan = false; S.showReview = false; ensureCalWatch();
+      S.day = addDays(m, 6) > TODAY ? TODAY : addDays(m, 6); S.editPlan = false; S.showReview = false; ensureWatches();
       if (location.hash !== '#hoy'){ location.hash = 'hoy'; return; }
       window.scrollTo(0,0); break;
     }
@@ -1446,9 +1557,19 @@ document.addEventListener('click', e => {
       for (const slot of x.three){ if (!items.length) break; if (!slot.t.trim()){ slot.t = items.shift(); slot.d = false; } }
       saveWeek(mondayOf(S.day)); break;
     }
-    case 'anchor': { const x = day(S.day); x.a[id] = !x.a[id]; saveWeek(mondayOf(S.day)); break; }
-    case 'cell': { const d = b.dataset.day; if (d > TODAY) break; const x = day(d); x.a[id] = !x.a[id]; saveWeek(mondayOf(d)); break; }
-    case 'sleep': { const x = day(S.day), v = +b.dataset.v; x.sleep = x.sleep === v ? null : v; saveWeek(mondayOf(S.day)); break; }
+    case 'anchor': { const x = day(S.day); x.a[id] = !x.a[id]; x.aSrc = Object.assign({}, x.aSrc, {[id]:'manual'}); saveWeek(mondayOf(S.day)); break; }
+    case 'cell': { const d = b.dataset.day; if (d > TODAY) break; const x = day(d); x.a[id] = !x.a[id]; x.aSrc = Object.assign({}, x.aSrc, {[id]:'manual'}); saveWeek(mondayOf(d)); break; }
+    case 'sleep': { const x = day(S.day), v = +b.dataset.v; x.sleep = x.sleep === v ? null : v; x.sleepSrc = 'manual'; saveWeek(mondayOf(S.day)); break; }
+    case 'sleep-fit': {
+      const x = day(S.day); if (!x.fit || !x.fit.sue) break;
+      x.sleep = Math.round(x.fit.sue.min / 6) / 10; x.sleepSrc = 'fitbit'; saveWeek(mondayOf(S.day)); break;
+    }
+    case 'fit-retry': fitKey = null; S.fit = {status:'loading', days:{}}; ensureFitWatch(); break;
+    case 'fit-perms':
+      if (!perms) return;
+      perms.manage().then(() => { fitKey = null; ensureFitWatch(); render(); },
+        () => toast('Abre el menú Permisos de esta página y activa Fit Bit.'));
+      return;
     case 'ocio-type': S.ocioPick = id; break;
     case 'ocio-del': {
       const x = day(S.day);
@@ -1583,7 +1704,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden'){ flushAll(); return; }
   const prev = TODAY; setToday();
   if (prev !== TODAY){
-    if (S.day === prev){ S.day = TODAY; ensureCalWatch(); }
+    if (S.day === prev){ S.day = TODAY; ensureWatches(); }
     if (S.month === monthKey(prev)) S.month = monthKey(TODAY);
     render();
   }
