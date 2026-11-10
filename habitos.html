@@ -982,7 +982,8 @@ function upcoming(from){
   for (const kd of S.cfg.keyDates){
     for (const k of [ym, nx]){
       const date = kdDate(kd, k), dd = diffDays(from, date), ok = !!(S.months[k] && S.months[k].done[kd.id]);
-      if ((k === ym && dd < 0 && !ok) || (dd >= 0 && dd <= 10)) out.push({kd, date, dd, k, ok});
+      // Hoy lists only what is still pending: overdue this month or due within ten days. Done ones stay in Mes.
+      if (!ok && ((k === ym && dd < 0) || (dd >= 0 && dd <= 10))) out.push({kd, date, dd, k, ok});
     }
   }
   return out.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
@@ -1609,7 +1610,11 @@ document.addEventListener('click', e => {
       w.rhythms[id] = arr.sort(); saveWeek(mondayOf(d)); break;
     }
     case 'done-del': { day(S.day).done.splice(+b.dataset.i, 1); saveWeek(mondayOf(S.day)); break; }
-    case 'kd': { const k = b.dataset.k, mo = month(k); mo.done[id] = !mo.done[id]; saveMonth(k); break; }
+    case 'kd': {
+      const k = b.dataset.k, mo = month(k); mo.done[id] = !mo.done[id]; saveMonth(k);
+      if (S.view === 'hoy' && mo.done[id]) toast('Listo. Si necesitas desmarcarla, está en Mes.');
+      break;
+    }
     case 'kd-del': S.confirm = 'kd:' + id; break;
     case 'kd-del-yes': S.cfg.keyDates = S.cfg.keyDates.filter(x => x.id !== id); S.confirm = null; saveCfg(); break;
     case 'confirm-no': S.confirm = null; break;
