@@ -74,13 +74,13 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .navbtn:disabled{opacity:.35;cursor:default}
 .linkbtn{background:none;border:0;padding:0;color:var(--lake);cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-size:15px;align-self:flex-start}
 .principle{font-style:italic;color:var(--muted);max-width:60ch}
-.wk{display:flex;flex-direction:column;gap:10px}
+.weekbox{display:flex;flex-direction:column;gap:10px}
 .wkhead{display:flex;align-items:center;gap:10px}
 .wkhead .lbl{flex:1;text-align:center;font-size:15px;font-weight:700}
 .wstrip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .wday{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 8px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-variant-numeric:tabular-nums;min-width:0}
 .wday small{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.04em}
-.wday b{font-family:var(--display);font-weight:400;font-size:19px;line-height:1.15}
+.wday b{font-weight:700;font-size:18px;line-height:1.2;font-variant-numeric:tabular-nums}
 .wday .wb{width:60%;height:3px;border-radius:2px;background:var(--cell);overflow:hidden}
 .wday .wb i{display:block;height:100%;background:var(--lake)}
 .wday.today{border-color:var(--lake);border-width:2px}
@@ -208,7 +208,7 @@ fieldset.lock{border:0;margin:0;padding:0;min-width:0;display:flex;flex-directio
 .dates li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
 .dates li:last-child{border-bottom:1px solid var(--line)}
 .dates .when{width:56px;flex:0 0 56px;font-variant-numeric:tabular-nums}
-.dates .when b{display:block;font-family:var(--display);font-weight:400;font-size:22px;line-height:1}
+.dates .when b{display:block;font-weight:700;font-size:20px;line-height:1.1;font-variant-numeric:tabular-nums}
 .dates .when small{color:var(--muted);font-size:12px}
 .dates .what{flex:1;min-width:0}
 .dates .what small{display:block;color:var(--muted);font-size:13px}
@@ -1169,7 +1169,7 @@ function viewHoy(){
     <p class="principle">${esc(principle)}</p>
   </section>
 
-  <section class="wk" aria-label="Semana">
+  <section class="weekbox" aria-label="Semana">
     <div class="wkhead">
       <button class="navbtn" data-act="week" data-n="-1" aria-label="Semana anterior" ${m <= MIN_MONDAY ? 'disabled' : ''}>‹</button>
       <span class="lbl">${isCurWeek ? 'Esta semana' : 'Semana'} · ${parse(days[0]).getDate()} ${fmtDM(days[0]).split(' ')[1]} – ${fmtDM(days[6])}</span>
