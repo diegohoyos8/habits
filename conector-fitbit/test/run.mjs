@@ -12,7 +12,7 @@ const B = process.env.BASE_URL;
 const idToken = email => 'h.' + Buffer.from(JSON.stringify({ email, email_verified: true })).toString('base64url') + '.s';
 let tokenEmail = 'yo@example.com', healthCalls = [], refreshCount = 0;
 const ALL_SCOPES = 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/googlehealth.sleep.readonly https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly';
-let tokenScope = ALL_SCOPES;
+let tokenScope = ALL_SCOPES, tokeninfoScope = ALL_SCOPES, refreshScope = ALL_SCOPES;
 
 // ---- Google mock (shapes taken from the Google Health API docs) ----
 const day = '2026-11-07';
@@ -29,7 +29,7 @@ globalThis.fetch = async (url, init = {}) => {
     if (f.get('grant_type') === 'refresh_token') {
       refreshCount++;
       if (f.get('refresh_token') === 'g-rt-bad') return reply({ error: 'invalid_grant' }, 400);
-      return reply({ access_token: 'g-at-2', expires_in: 3599, refresh_token: 'g-rt-2' });
+      return reply({ access_token: 'g-at-2', expires_in: 3599, refresh_token: 'g-rt-2', scope: refreshScope });
     }
   }
   if (url.startsWith('https://health.googleapis.com/v4/users/me/')) {
@@ -60,7 +60,7 @@ globalThis.fetch = async (url, init = {}) => {
       { dailyRestingHeartRate: { date: { year: 2026, month: 11, day: 7 }, beatsPerMinute: '58' } } ] });
     return reply({ error: { code: 404, message: 'unexpected ' + path } }, 404);
   }
-  if (url.startsWith('https://oauth2.googleapis.com/tokeninfo?')) return reply({ scope: 'openid https://www.googleapis.com/auth/userinfo.email', expires_in: 3000 });
+  if (url.startsWith('https://oauth2.googleapis.com/tokeninfo?')) return reply({ scope: tokeninfoScope, expires_in: 3000 });
   throw new Error('Unexpected fetch ' + url);
 };
 
@@ -152,7 +152,7 @@ assert.deepEqual(s.sueno.etapas, { profundo: 90, ligero: 120, rem: 225, despiert
 assert.equal(s.sueno.siestas, 1); assert.equal(s.sueno.minutosSiestas, 25);
 assert.equal(s.pasos, 8421); assert.equal(s.minutosZonaActiva, 28);
 assert.equal(s.minutosActivos, null); assert.match(s.noDisponible.minutosActivos, /ACCESS_TOKEN_SCOPE_INSUFFICIENT/);
-assert.equal(s.noDisponible.permisosConcedidos, 'openid, userinfo.email');
+assert.match(s.noDisponible.permisosConcedidos, /googlehealth\.sleep\.readonly/);
 assert.deepEqual(s.ejercicios, [{ inicio: '08:05', tipo: 'WALKING', nombre: 'Walking', minutos: 33 }]);
 assert.equal(s.pulsoReposo, 58);
 assert.equal(JSON.parse(j.result.content[0].text).pasos, 8421);
@@ -170,12 +170,22 @@ j = await r.json(); assert.equal(j.result.isError, true); ok('bad date rejected'
 r = await call({ jsonrpc: '2.0', id: 7, method: 'tools/list' }, tokens.refresh_token);
 assert.equal(r.status, 401); ok('refresh token is not accepted as access token');
 
+// 7b. A token with no health scope at all is refused with 401, so the client re-runs consent.
+tokeninfoScope = 'openid https://www.googleapis.com/auth/userinfo.email';
+r = await call({ jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name: 'resumen_del_dia', arguments: { fecha: day } } });
+assert.equal(r.status, 401); assert.match(r.headers.get('www-authenticate'), /invalid_token/);
+tokeninfoScope = ALL_SCOPES; ok('token without health scopes answers 401');
+
 // 8. Refresh
 r = await oauth.POST(req('/api/oauth?route=token', form({ grant_type: 'refresh_token', refresh_token: tokens.refresh_token, client_id: client.client_id })));
 assert.equal(r.status, 200); const t2 = await r.json(); assert.equal(refreshCount, 1);
 healthCalls = [];
 await call({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'resumen_del_dia', arguments: { fecha: day } } }, t2.access_token);
 assert.ok(healthCalls.every(c => c.auth === 'Bearer g-at-2')); ok('refresh issues a working token');
+refreshScope = 'openid https://www.googleapis.com/auth/userinfo.email';
+r = await oauth.POST(req('/api/oauth?route=token', form({ grant_type: 'refresh_token', refresh_token: t2.refresh_token, client_id: client.client_id })));
+assert.equal(r.status, 400); assert.equal((await r.json()).error, 'invalid_grant');
+refreshScope = ALL_SCOPES; ok('refresh refuses a grant without health scopes');
 r = await oauth.POST(req('/api/oauth?route=token', form({ grant_type: 'refresh_token', refresh_token: 'garbage-token-value-1234567890' })));
 assert.equal(r.status, 400); ok('bad refresh token rejected');
 

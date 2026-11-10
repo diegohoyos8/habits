@@ -2,7 +2,7 @@
 // backed by Google sign-in. Stateless: every artifact is an encrypted token (lib/seal.js).
 import { seal, open, now, sha256b64u } from '../lib/seal.js';
 import { baseUrl, json, html } from '../lib/http.js';
-import { googleAuthUrl, exchangeCode, refreshGoogle, emailFromIdToken, identity, HealthError, SCOPES } from '../lib/google.js';
+import { googleAuthUrl, exchangeCode, refreshGoogle, emailFromIdToken, identity, HealthError, SCOPES, hasHealthScope } from '../lib/google.js';
 
 const DEFAULT_REDIRECTS = ['https://claude.ai/api/mcp/auth_callback', 'https://claude.com/api/mcp/auth_callback'];
 const allowedRedirects = () => [
@@ -188,6 +188,11 @@ async function token(request) {
     } catch (e) {
       return oauthError(e.oauthError === 'invalid_grant' ? 'invalid_grant' : 'temporarily_unavailable',
         'Google rechazó renovar el acceso. Vuelve a conectar el conector.', e.oauthError === 'invalid_grant' ? 400 : 503);
+    }
+    if (g.scope && !hasHealthScope(g.scope)) {
+      // An old grant without health scopes: refuse it so claude.ai asks for consent again.
+      console.log('refresh: grant has no health scopes, asking for a new consent');
+      return oauthError('invalid_grant', 'El permiso de Google no incluye datos de salud. Vuelve a conectar y marca todas las casillas.');
     }
     return issue({ at: g.access_token, rt: g.refresh_token || rt.g, exp: now() + (g.expires_in || 3600) }, rt.cid);
   }

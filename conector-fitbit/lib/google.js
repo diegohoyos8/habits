@@ -55,6 +55,8 @@ async function tokenRequest(params) {
 export const exchangeCode = (code, redirectUri) =>
   tokenRequest({ grant_type: 'authorization_code', code, redirect_uri: redirectUri });
 
+export const hasHealthScope = scope => SCOPES.some(sc => sc.includes('googlehealth') && String(scope || '').split(/\s+/).includes(sc));
+
 export const refreshGoogle = refreshToken =>
   tokenRequest({ grant_type: 'refresh_token', refresh_token: refreshToken });
 
@@ -224,7 +226,10 @@ export async function summaries(at, desde, hasta) {
     const scopes = await grantedScopes(at);
     if (scopes) {
       missing.permisosConcedidos = scopes.join(', ') || '(ninguno)';
-      console.error('token scopes', scopes.filter(sc => sc.startsWith('googlehealth')).length, 'health scopes of', scopes.length);
+      const health = scopes.filter(sc => sc.startsWith('googlehealth')).length;
+      console.error('token scopes', health, 'health scopes of', scopes.length);
+      // A grant with no health scope at all is useless: make the client re-run the full consent.
+      if (!health) throw new HealthError(401, 'NO_HEALTH_SCOPES', 'El permiso de Google no incluye datos de salud.');
     }
   }
   // If every call failed for the same auth reason, surface it as one error.
