@@ -1,0 +1,560 @@
+<meta name="dash-one-writer">
+<style>
+.mf{display:flex;flex-direction:column;gap:var(--cds-gap-xl);font-family:var(--font-anthropic-sans);color:var(--color-fg)}
+.mf-head{display:flex;flex-direction:column;gap:var(--cds-gap-sm)}
+.mf-title{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);margin:0}
+.mf-lede{font-size:var(--cds-font-size-body);line-height:1.55;max-width:68ch;margin:0}
+.mf-lede b{font-weight:var(--cds-font-weight-medium);font-variant-numeric:tabular-nums}
+.mf-controls{display:flex;align-items:center;gap:var(--cds-gap-sm);flex-wrap:wrap;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption)}
+.mf-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:var(--cds-gap-md)}
+.mf-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);display:flex;flex-direction:column;gap:4px;min-width:0}
+.mf-card h3{margin:0;font-size:var(--cds-font-size-caption);font-weight:var(--cds-font-weight-medium);color:var(--color-fg-muted);text-transform:uppercase;letter-spacing:.06em}
+.mf-big{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);font-variant-numeric:tabular-nums;line-height:1.1}
+.mf-unit{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-left:4px}
+.mf-delta{font-size:var(--cds-font-size-caption);font-variant-numeric:tabular-nums}
+.mf-delta.good{color:var(--color-ok)}.mf-delta.bad{color:var(--color-bad)}.mf-delta.flat{color:var(--color-fg-muted)}
+.mf-win{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.mf-sec{display:flex;flex-direction:column;gap:var(--cds-gap-sm)}
+.mf-sec h2{font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium);margin:0}
+.mf-sec > p{margin:0;color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);max-width:68ch}
+.mf-chart{position:relative;min-height:220px;width:100%}
+.mf-chart.short{min-height:120px}
+.mf-chart svg{display:block;width:100%;overflow:visible}
+.mf-chart .axis text{fill:var(--cds-text-secondary);font-size:var(--cds-font-size-caption);font-family:var(--font-anthropic-sans)}
+.mf-chart .axis path,.mf-chart .axis line{stroke:var(--cds-chart-axis)}
+.mf-chart .grid line{stroke:var(--cds-chart-grid)}
+.mf-chart .grid path{display:none}
+.mf-chart .ref{stroke:var(--cds-chart-reference);stroke-dasharray:4 3}
+.mf-chart .reflabel{fill:var(--cds-text-secondary);font-size:var(--cds-font-size-caption)}
+.mf-chart .msg{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);padding:var(--cds-pad-md) 0}
+.mf-tip{position:absolute;pointer-events:none;background:var(--cds-surface-popover);border:1px solid var(--cds-border);box-shadow:var(--cds-shadow-popover);border-radius:var(--cds-radius);padding:6px 9px;font-size:var(--cds-font-size-caption);line-height:1.45;white-space:nowrap;z-index:2;font-variant-numeric:tabular-nums}
+.mf-tip b{font-weight:var(--cds-font-weight-medium)}
+.mf-legend{display:flex;flex-wrap:wrap;gap:4px 14px;list-style:none;margin:0;padding:0;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.mf-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.mf-legend i.line{height:2px;width:14px;vertical-align:3px}
+.mf-legend i.dash{height:0;width:14px;border-top:2px dashed var(--cds-chart-reference);vertical-align:3px}
+.mf-multi{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--cds-gap-md)}
+.mf-mini{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-md) var(--cds-pad-lg);display:flex;flex-direction:column;gap:4px;min-width:0}
+.mf-mini h3{margin:0;font-size:var(--cds-font-size-body);font-weight:var(--cds-font-weight-medium)}
+.mf-mini .mf-big{font-size:var(--cds-font-size-heading)}
+.mf-tablewrap{overflow-x:auto}
+.mf-table{border-collapse:collapse;width:100%;font-size:var(--cds-font-size-body);font-variant-numeric:tabular-nums;min-width:360px}
+.mf-table th,.mf-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--color-border-line)}
+.mf-table th{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);font-weight:var(--cds-font-weight-medium)}
+.mf-table td.num,.mf-table th.num{text-align:right}
+.mf details{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption);max-width:68ch}
+.mf details summary{cursor:pointer;color:var(--color-fg)}
+.mf details dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:10px 0 0}
+.mf details dt{color:var(--color-fg);font-weight:var(--cds-font-weight-medium)}
+.mf details dd{margin:0}
+[data-dash-source-state=refreshing]{opacity:.5}
+</style>
+
+<div class="mf">
+  <header class="mf-head" id="resumen">
+    <h1 class="mf-title">Mi Fitbit</h1>
+    <p class="mf-lede">En las últimas 7 noches dormiste <b data-draw="l-sueno" data-source="semana" data-field="ultimos7" data-where="metrica=sueno_h">—</b> h en promedio, <span data-draw="l-sueno-cmp">—</span>. Te dormiste, en promedio, a las <b data-draw="l-dormir" data-source="semana" data-field="ultimos7_txt" data-where="metrica=hora_dormir_min">—</b>. En los últimos 7 días completos caminaste <b data-draw="l-pasos" data-source="semana" data-field="ultimos7" data-where="metrica=pasos">—</b> pasos al día e hiciste <b data-draw="l-sesiones" data-source="semana" data-field="ultimos7" data-where="metrica=ejercicios">—</b> sesiones de ejercicio.</p>
+    <div class="mf-controls">
+      <label for="mf-periodo">Periodo de las gráficas</label>
+      <select class="dash-select" id="mf-periodo" aria-label="Periodo">
+        <option value="30">Últimos 30 días</option>
+        <option value="60">Últimos 60 días</option>
+        <option value="90">Últimos 90 días</option>
+      </select>
+    </div>
+  </header>
+
+  <section class="mf-cards" id="tarjetas" aria-label="Última semana frente a la anterior">
+    <div class="mf-card" id="card-sueno">
+      <h3>Sueño</h3>
+      <div><span class="mf-big" data-draw="c-sueno" data-source="semana" data-field="ultimos7" data-where="metrica=sueno_h">—</span><span class="mf-unit">h por noche</span></div>
+      <span class="mf-delta" data-draw="d-sueno" data-source="semana" data-field="cambio" data-where="metrica=sueno_h">—</span>
+      <span class="mf-win">Últimas 7 noches vs 7 anteriores</span>
+    </div>
+    <div class="mf-card" id="card-dormir">
+      <h3>Hora de dormir</h3>
+      <div><span class="mf-big" data-draw="c-dormir" data-source="semana" data-field="ultimos7_txt" data-where="metrica=hora_dormir_min">—</span><span class="mf-unit">promedio</span></div>
+      <span class="mf-delta" data-draw="d-dormir" data-source="semana" data-field="cambio" data-where="metrica=hora_dormir_min">—</span>
+      <span class="mf-win">Últimas 7 noches vs 7 anteriores</span>
+    </div>
+    <div class="mf-card" id="card-pasos">
+      <h3>Pasos</h3>
+      <div><span class="mf-big" data-draw="c-pasos" data-source="semana" data-field="ultimos7" data-where="metrica=pasos">—</span><span class="mf-unit">al día</span></div>
+      <span class="mf-delta" data-draw="d-pasos" data-source="semana" data-field="cambio" data-where="metrica=pasos">—</span>
+      <span class="mf-win">Últimos 7 días completos vs 7 anteriores</span>
+    </div>
+    <div class="mf-card" id="card-zona">
+      <h3>Zona activa</h3>
+      <div><span class="mf-big" data-draw="c-zona" data-source="semana" data-field="ultimos7" data-where="metrica=zona_activa_min">—</span><span class="mf-unit">min en 7 días</span></div>
+      <span class="mf-delta" data-draw="d-zona" data-source="semana" data-field="cambio" data-where="metrica=zona_activa_min">—</span>
+      <span class="mf-win">Últimos 7 días completos vs 7 anteriores</span>
+    </div>
+    <div class="mf-card" id="card-pulso">
+      <h3>Pulso en reposo</h3>
+      <div><span class="mf-big" data-draw="c-pulso" data-source="semana" data-field="ultimos7" data-where="metrica=pulso_reposo">—</span><span class="mf-unit">lpm</span></div>
+      <span class="mf-delta" data-draw="d-pulso" data-source="semana" data-field="cambio" data-where="metrica=pulso_reposo">—</span>
+      <span class="mf-win">Últimos 7 días vs 7 anteriores</span>
+    </div>
+    <div class="mf-card" id="card-vfc">
+      <h3>Variabilidad cardiaca</h3>
+      <div><span class="mf-big" data-draw="c-vfc" data-source="semana" data-field="ultimos7" data-where="metrica=vfc_ms">—</span><span class="mf-unit">ms</span></div>
+      <span class="mf-delta" data-draw="d-vfc" data-source="semana" data-field="cambio" data-where="metrica=vfc_ms">—</span>
+      <span class="mf-win">Últimos 7 días vs 7 anteriores</span>
+    </div>
+  </section>
+
+  <section class="mf-sec" id="sueno">
+    <h2>Sueño por noche</h2>
+    <p>Horas dormidas cada noche, separadas por fase, con el promedio de 7 días y la meta de 7 horas.</p>
+    <ul class="mf-legend">
+      <li><i data-sw="0"></i>Profundo</li>
+      <li><i data-sw="1"></i>REM</li>
+      <li><i data-sw="2"></i>Ligero</li>
+      <li><i data-sw="3" class="line"></i>Promedio 7 días</li>
+      <li><i class="dash"></i>Meta 7 h</li>
+    </ul>
+    <div class="mf-chart" data-draw="ch-sueno" data-source="serie serie_movil" role="img" aria-label="Horas de sueño por noche, por fase, con promedio de 7 días"></div>
+  </section>
+
+  <section class="mf-sec" id="horario">
+    <h2>A qué hora duermes</h2>
+    <p>Cada barra va de la hora en que te dormiste a la hora en que despertaste.</p>
+    <div class="mf-chart" data-draw="ch-horario" data-source="serie" role="img" aria-label="Hora de dormir y de despertar por noche"></div>
+  </section>
+
+  <section class="mf-sec" id="pasos">
+    <h2>Pasos por día</h2>
+    <p>La barra más clara es el día en curso, que aún no termina.</p>
+    <ul class="mf-legend">
+      <li><i data-sw="0"></i>Pasos</li>
+      <li><i data-sw="3" class="line"></i>Promedio 7 días</li>
+    </ul>
+    <div class="mf-chart" data-draw="ch-pasos" data-source="serie serie_movil" role="img" aria-label="Pasos por día con promedio de 7 días"></div>
+  </section>
+
+  <section class="mf-sec" id="ejercicio">
+    <h2>Ejercicio por semana</h2>
+    <p>Minutos de ejercicio registrados cada semana (de lunes a domingo) y número de sesiones.</p>
+    <div class="mf-chart" data-draw="ch-ejercicio" data-source="semanas" role="img" aria-label="Minutos de ejercicio por semana"></div>
+  </section>
+
+  <section class="mf-sec" id="corazon">
+    <h2>Corazón y recuperación</h2>
+    <p>Medidas que la pulsera toma mientras duermes. El número grande es el más reciente.</p>
+    <div class="mf-multi">
+      <div class="mf-mini" id="mini-pulso">
+        <h3>Pulso en reposo</h3>
+        <div><span class="mf-big" data-draw="u-pulso" data-source="semana" data-field="ultimo" data-where="metrica=pulso_reposo">—</span><span class="mf-unit">lpm</span></div>
+        <div class="mf-chart short" data-draw="sp-pulso" data-source="serie" role="img" aria-label="Pulso en reposo por día"></div>
+      </div>
+      <div class="mf-mini" id="mini-vfc">
+        <h3>Variabilidad cardiaca (VFC)</h3>
+        <div><span class="mf-big" data-draw="u-vfc" data-source="semana" data-field="ultimo" data-where="metrica=vfc_ms">—</span><span class="mf-unit">ms</span></div>
+        <div class="mf-chart short" data-draw="sp-vfc" data-source="serie" role="img" aria-label="Variabilidad cardiaca por día"></div>
+      </div>
+      <div class="mf-mini" id="mini-spo2">
+        <h3>Oxígeno en sangre</h3>
+        <div><span class="mf-big" data-draw="u-spo2" data-source="semana" data-field="ultimo" data-where="metrica=spo2_pct">—</span><span class="mf-unit">%</span></div>
+        <div class="mf-chart short" data-draw="sp-spo2" data-source="serie" role="img" aria-label="Oxígeno en sangre por noche"></div>
+      </div>
+      <div class="mf-mini" id="mini-resp">
+        <h3>Respiración</h3>
+        <div><span class="mf-big" data-draw="u-resp" data-source="semana" data-field="ultimo" data-where="metrica=respiracion_rpm">—</span><span class="mf-unit">resp/min</span></div>
+        <div class="mf-chart short" data-draw="sp-resp" data-source="serie" role="img" aria-label="Respiraciones por minuto durante el sueño"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mf-sec" id="sesiones">
+    <h2>Sesiones de ejercicio</h2>
+    <div class="mf-tablewrap">
+      <table class="mf-table" data-source="sesiones" data-row-key="fecha,inicio">
+        <thead><tr><th data-field="fecha">Día</th><th data-field="inicio">Hora</th><th data-field="nombre">Actividad</th><th data-field="minutos" class="num">Minutos</th></tr></thead>
+        <tbody data-draw="t-sesiones"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <details id="glosario">
+    <summary>Qué significa cada medida</summary>
+    <dl>
+      <dt>Sueño</dt><dd>Minutos realmente dormido en la noche principal que terminó ese día, sin contar los ratos despierto.</dd>
+      <dt>Zona activa</dt><dd>Minutos con el pulso en zonas de quema de grasa, cardio o pico, según la pulsera.</dd>
+      <dt>Pulso en reposo</dt><dd>Latidos por minuto en reposo. Bajar con el tiempo suele indicar mejor condición o mejor descanso.</dd>
+      <dt>VFC</dt><dd>Variabilidad de la frecuencia cardiaca durante el sueño, en milisegundos. Más alta suele indicar mejor recuperación; conviene compararla contigo mismo, no con otros.</dd>
+      <dt>Oxígeno y respiración</dt><dd>Promedios de la noche. Sirven para notar cambios, no para diagnosticar.</dd>
+    </dl>
+  </details>
+</div>
+
+<script>
+// Period filter: the queries read {{desde}} and {{hasta}}. Default to the last 30 days ending today, in local time.
+(() => {
+  const pad = n => String(n).padStart(2, '0');
+  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const back = (days) => { const d = new Date(); d.setDate(d.getDate() - days); return iso(d); };
+  const today = iso(new Date());
+  const span = (p) => p && p.desde && p.hasta ? Math.round((Date.parse(p.hasta) - Date.parse(p.desde)) / 864e5) + 1 : 30;
+  const p = dash.params();
+  if (p.hasta !== today) dash.setParams({desde: back(span(p) - 1), hasta: today});
+  window.mfToday = today;
+  document.querySelectorAll('#mf-periodo').forEach(sel => {
+    const sync = () => { if (document.activeElement !== sel) sel.value = String(span(dash.params())); };
+    sync();
+    sel.addEventListener('change', () => dash.setParams({desde: back(Number(sel.value) - 1), hasta: iso(new Date())}));
+    dash.onData(sync);
+  });
+})();
+</script>
+
+<script>
+// Calculations readers can check: rolling 7-day means, weekly totals and last-7-vs-previous-7 summaries.
+const num = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);
+dash.calc('serie_movil', {
+  title: 'Promedio móvil de 7 días',
+  description: 'Promedio de los 7 días que terminan en cada fecha, con al menos 3 días con dato.',
+  inputs: ['serie'],
+  fn: (serie) => {
+    const rows = serie.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+    const mean = (i, k) => { const v = rows.slice(Math.max(0, i - 6), i + 1).map(r => r[k]).filter(x => x !== null && x !== undefined && x !== '' && !isNaN(Number(x))).map(Number); return v.length >= 3 ? Math.round(v.reduce((s, x) => s + x, 0) / v.length * 10) / 10 : null; };
+    return rows.map((r, i) => ({fecha: r.fecha, sueno_h_7d: mean(i, 'sueno_h'), pasos_7d: mean(i, 'pasos')}));
+  }
+});
+dash.calc('semanas', {
+  title: 'Ejercicio por semana',
+  description: 'Suma de minutos y sesiones de ejercicio por semana de lunes a domingo.',
+  inputs: ['serie'],
+  fn: (serie) => {
+    const monday = f => { const d = new Date(f + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
+    const by = new Map();
+    for (const r of serie) {
+      const k = monday(r.fecha), w = by.get(k) || {semana: k, ejercicio_min: 0, sesiones: 0, zona_activa_min: 0, dias: 0};
+      const n = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? 0 : Number(v);
+      w.ejercicio_min += n(r.ejercicio_min); w.sesiones += n(r.ejercicios); w.zona_activa_min += n(r.zona_activa_min); w.dias += 1;
+      by.set(k, w);
+    }
+    return [...by.values()].sort((a, b) => a.semana < b.semana ? -1 : 1);
+  }
+});
+dash.calc('semana', {
+  title: 'Última semana frente a la anterior',
+  description: 'Promedio (o suma, en zona activa y sesiones) de las últimas 7 noches o los últimos 7 días completos, frente a los 7 anteriores, y el dato más reciente.',
+  inputs: ['serie'],
+  fn: (serie) => {
+    const rows = serie.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+    const last = rows.length ? rows[rows.length - 1].fecha : null;
+    const val = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);
+    const hhmm = m => { if (m === null) return null; const t = ((Math.round(m) % 1440) + 1440) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+    // Sleep and nightly vitals count the night that ended today; activity skips today, which is still running.
+    const spec = [
+      {metrica: 'sueno_h', agg: 'mean', skipToday: false, dec: 1},
+      {metrica: 'hora_dormir_min', agg: 'mean', skipToday: false, dec: 0},
+      {metrica: 'pasos', agg: 'mean', skipToday: true, dec: 0},
+      {metrica: 'zona_activa_min', agg: 'sum', skipToday: true, dec: 0},
+      {metrica: 'ejercicios', agg: 'sum', skipToday: true, dec: 0},
+      {metrica: 'pulso_reposo', agg: 'mean', skipToday: false, dec: 1},
+      {metrica: 'vfc_ms', agg: 'mean', skipToday: false, dec: 1},
+      {metrica: 'spo2_pct', agg: 'mean', skipToday: false, dec: 1},
+      {metrica: 'respiracion_rpm', agg: 'mean', skipToday: false, dec: 1}
+    ];
+    return spec.map(s => {
+      const pool = s.skipToday ? rows.filter(r => r.fecha !== last) : rows;
+      const a = pool.slice(-7), b = pool.slice(-14, -7);
+      const agg = (list) => { const v = list.map(r => val(r[s.metrica])).filter(x => x !== null); if (v.length < 3) return null; const t = v.reduce((x, y) => x + y, 0); const r = s.agg === 'sum' ? t : t / v.length; return Math.round(r * 10 ** s.dec) / 10 ** s.dec; };
+      const u = rows.slice().reverse().find(r => val(r[s.metrica]) !== null);
+      const ul = agg(a), pr = agg(b);
+      return {metrica: s.metrica, ultimos7: ul, previos7: pr, cambio: ul !== null && pr !== null ? Math.round((ul - pr) * 10 ** s.dec) / 10 ** s.dec : null,
+        ultimos7_txt: s.metrica === 'hora_dormir_min' ? hhmm(ul) : null, ultimo: u ? val(u[s.metrica]) : null, ultimo_fecha: u ? u.fecha : null};
+    });
+  }
+});
+</script>
+
+<script>
+// Drawings.
+(() => {
+  const loc = d3.formatLocale({decimal: ',', thousands: '.', grouping: [3], currency: ['', ' €']});
+  const f1 = loc.format(',.1f'), f0 = loc.format(',.0f');
+  const fmt = (v, dec) => v === null || v === undefined ? '—' : (dec ? f1(v) : (Math.abs(v) >= 10000 ? f0(v) : String(Math.round(v))));
+  const dayName = d3.utcFormat('%d %b'), longDay = d3.utcFormat('%a %d %b');
+  const parseDay = s => new Date(s + 'T00:00:00Z');
+  const hhmm = m => { const t = ((Math.round(m) % 1440) + 1440) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+  const SLEEP_GOAL = 7;
+  const col = i => dash.colors[i % dash.colors.length];
+  const n = v => (v === null || v === undefined || v === '' || isNaN(Number(v))) ? null : Number(v);
+
+  document.querySelectorAll('.mf-legend i[data-sw]').forEach(i => { i.style.background = col(Number(i.dataset.sw)); });
+
+  const sem = () => { const s = dash.data('semana'); return s.status === 'ok' && Array.isArray(s.data) ? s.data : null; };
+  const metric = k => { const s = sem(); return s ? s.find(r => r.metrica === k) : null; };
+  const putText = (el, t) => { el.textContent = t; el.classList.remove('dash-skeleton'); };
+  const loading = id => dash.data(id).status === 'loading';
+
+  // Numbers in the summary sentence and cards.
+  const big = (name, key, dec, field = 'ultimos7') => dash.draw(name, el => {
+    if (loading('serie')) { el.textContent = ''; el.classList.add('dash-skeleton'); return; }
+    const m = metric(key); putText(el, m && m[field] !== null ? (field === 'ultimos7_txt' ? m[field] : fmt(m[field], dec)) : '—');
+  });
+  big('l-sueno', 'sueno_h', 1); big('l-dormir', 'hora_dormir_min', 0, 'ultimos7_txt'); big('l-pasos', 'pasos', 0); big('l-sesiones', 'ejercicios', 0);
+  big('c-sueno', 'sueno_h', 1); big('c-dormir', 'hora_dormir_min', 0, 'ultimos7_txt'); big('c-pasos', 'pasos', 0);
+  big('c-zona', 'zona_activa_min', 0); big('c-pulso', 'pulso_reposo', 1); big('c-vfc', 'vfc_ms', 1);
+  big('u-pulso', 'pulso_reposo', 0, 'ultimo'); big('u-vfc', 'vfc_ms', 1, 'ultimo'); big('u-spo2', 'spo2_pct', 1, 'ultimo'); big('u-resp', 'respiracion_rpm', 1, 'ultimo');
+
+  dash.draw('l-sueno-cmp', el => {
+    const m = metric('sueno_h');
+    if (!m || m.cambio === null) { el.textContent = 'sin semana anterior para comparar'; return; }
+    const c = m.cambio;
+    el.textContent = Math.abs(c) < 0.1 ? 'casi igual que la semana anterior' : `${f1(Math.abs(c))} h ${c > 0 ? 'más' : 'menos'} que la semana anterior`;
+  });
+
+  // Signed change, colored by whether it is good. higherIsGood: true / false / null (neutral).
+  const delta = (name, key, dec, higherIsGood, unit, asTime) => dash.draw(name, el => {
+    const m = metric(key); el.classList.remove('good', 'bad', 'flat');
+    if (!m || m.cambio === null) { el.textContent = 'Sin semana anterior'; el.classList.add('flat'); return; }
+    const c = m.cambio, tiny = Math.abs(c) < (dec ? 0.1 : 1);
+    if (asTime) {
+      const mins = Math.round(Math.abs(c));
+      el.textContent = tiny ? 'Igual que la semana anterior' : `${mins} min ${c > 0 ? 'más tarde' : 'más temprano'}`;
+    } else {
+      el.textContent = tiny ? 'Igual que la semana anterior' : `${c > 0 ? '+' : '−'}${fmt(Math.abs(c), dec)}${unit} vs semana anterior`;
+    }
+    el.classList.add(tiny || higherIsGood === null ? 'flat' : ((c > 0) === higherIsGood ? 'good' : 'bad'));
+  });
+  delta('d-sueno', 'sueno_h', 1, true, ' h');
+  delta('d-dormir', 'hora_dormir_min', 0, false, '', true);
+  delta('d-pasos', 'pasos', 0, true, '');
+  delta('d-zona', 'zona_activa_min', 0, true, ' min');
+  delta('d-pulso', 'pulso_reposo', 1, false, ' lpm');
+  delta('d-vfc', 'vfc_ms', 1, true, ' ms');
+
+  // Shared chart scaffolding.
+  function status(el, ids) {
+    const st = ids.map(id => dash.data(id).status);
+    if (st.includes('error')) { el.replaceChildren(Object.assign(document.createElement('div'), {className: 'msg', textContent: 'No se pudo cargar.'})); return false; }
+    if (st.some(s => s !== 'ok')) { el.replaceChildren(); return false; }
+    return true;
+  }
+  function tipLayer(el) {
+    const tip = document.createElement('div'); tip.className = 'mf-tip'; tip.hidden = true; el.appendChild(tip);
+    return {
+      show(x, y, nodes) {
+        tip.replaceChildren(...nodes); tip.hidden = false;
+        const w = el.clientWidth, tw = tip.offsetWidth;
+        tip.style.left = Math.max(0, Math.min(w - tw, x + 12)) + 'px'; tip.style.top = Math.max(0, y - 10) + 'px';
+      },
+      hide() { tip.hidden = true; }
+    };
+  }
+  const line = (label, value) => { const d = document.createElement('div'); const b = document.createElement('b'); b.textContent = value; d.append(label + ' ', b); return d; };
+  const head = (text) => { const d = document.createElement('div'); d.textContent = text; return d; };
+  function axisLeft(svg, y, ticks, fmtTick, mLeft) {
+    const g = svg.append('g').attr('class', 'axis').attr('transform', `translate(${mLeft},0)`).call(d3.axisLeft(y).ticks(ticks).tickFormat(fmtTick).tickSizeOuter(0));
+    return g;
+  }
+  function measureLeft(svg, labels) {
+    const t = svg.append('g').attr('class', 'axis'); let w = 0;
+    for (const s of labels) { const el = t.append('text').text(s).node(); w = Math.max(w, el.getComputedTextLength()); }
+    t.remove(); return Math.ceil(w) + 10;
+  }
+  function xAxis(svg, x, dates, h, m) {
+    const w = x.range()[1] - x.range()[0];
+    const every = Math.max(1, Math.ceil(dates.length / Math.max(2, Math.floor(w / 64))));
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${h - m.bottom})`)
+      .call(d3.axisBottom(x).tickValues(dates.filter((_, i) => i % every === 0)).tickFormat(d => dayName(parseDay(d))).tickSizeOuter(0));
+  }
+  function overlay(svg, x, dates, m, h, onDate, onLeave) {
+    const step = x.step ? x.step() : 0;
+    svg.append('rect').attr('x', m.left).attr('y', m.top).attr('width', Math.max(0, x.range()[1] - m.left)).attr('height', Math.max(0, h - m.top - m.bottom))
+      .attr('fill', 'transparent')
+      .on('pointermove', (event) => { const [px, py] = d3.pointer(event); const i = Math.max(0, Math.min(dates.length - 1, Math.floor((px - m.left) / step))); onDate(dates[i], px, py); })
+      .on('pointerleave', onLeave);
+  }
+
+  // Sleep per night, stacked by stage.
+  dash.draw('ch-sueno', el => {
+    if (!status(el, ['serie', 'serie_movil'])) return;
+    const rows = dash.data('serie').data.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+    const mov = new Map(dash.data('serie_movil').data.map(r => [r.fecha, n(r.sueno_h_7d)]));
+    el.replaceChildren();
+    const W = el.clientWidth, H = 240, dates = rows.map(r => r.fecha);
+    const stacks = rows.map(r => {
+      const tot = n(r.sueno_min); const p = n(r.profundo_min), rm = n(r.rem_min), l = n(r.ligero_min);
+      if (tot === null) return {fecha: r.fecha, parts: [], tot: null};
+      if (p === null && rm === null && l === null) return {fecha: r.fecha, parts: [{k: 2, v: tot / 60}], tot};
+      const sum = (p || 0) + (rm || 0) + (l || 0), scale = sum ? tot / sum : 1;
+      return {fecha: r.fecha, parts: [{k: 0, v: (p || 0) * scale / 60}, {k: 1, v: (rm || 0) * scale / 60}, {k: 2, v: (l || 0) * scale / 60}], tot, p, rm, l};
+    });
+    const yMax = Math.max(9, d3.max(stacks, s => s.tot ? s.tot / 60 : 0) + 0.5);
+    const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+    const m = {top: 10, right: 8, bottom: 24, left: measureLeft(svg, ['10 h'])};
+    const x = d3.scaleBand().domain(dates).range([m.left, W - m.right]).paddingInner(0.25);
+    const y = d3.scaleLinear().domain([0, yMax]).range([H - m.bottom, m.top]);
+    svg.append('g').attr('class', 'grid').attr('transform', `translate(${m.left},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.left - m.right)).tickFormat(''));
+    axisLeft(svg, y, 4, d => `${d} h`, m.left);
+    xAxis(svg, x, dates, H, m);
+    const g = svg.append('g');
+    for (const s of stacks) {
+      let acc = 0;
+      for (const part of s.parts) {
+        g.append('rect').attr('x', x(s.fecha)).attr('width', x.bandwidth()).attr('y', y(acc + part.v)).attr('height', Math.max(0, y(acc) - y(acc + part.v))).style('fill', col(part.k));
+        acc += part.v;
+      }
+    }
+    svg.append('line').attr('class', 'ref').attr('x1', m.left).attr('x2', W - m.right).attr('y1', y(SLEEP_GOAL)).attr('y2', y(SLEEP_GOAL));
+    const pts = dates.map(d => [d, mov.get(d)]).filter(p => p[1] !== null && p[1] !== undefined);
+    svg.append('path').datum(pts).attr('fill', 'none').style('stroke', col(3)).attr('stroke-width', 2)
+      .attr('d', d3.line().x(p => x(p[0]) + x.bandwidth() / 2).y(p => y(p[1])));
+    const tip = tipLayer(el);
+    overlay(svg, x, dates, m, H, (d, px, py) => {
+      const s = stacks.find(t => t.fecha === d), r = rows.find(t => t.fecha === d);
+      const nodes = [head(longDay(parseDay(d)))];
+      if (!s || s.tot === null) nodes.push(head('Sin registro'));
+      else {
+        nodes.push(line('Dormido', `${Math.floor(s.tot / 60)} h ${String(Math.round(s.tot % 60)).padStart(2, '0')}`));
+        if (r.hora_dormir) nodes.push(line('De', `${r.hora_dormir} a ${r.hora_despertar}`));
+        if (s.p !== undefined && s.p !== null) nodes.push(line('Profundo', `${s.p} min`), line('REM', `${s.rm} min`), line('Ligero', `${s.l} min`));
+      }
+      const mv = mov.get(d); if (mv !== null && mv !== undefined) nodes.push(line('Promedio 7 días', `${f1(mv)} h`));
+      tip.show(px, py, nodes);
+    }, () => tip.hide());
+  });
+
+  // Bed and wake times.
+  dash.draw('ch-horario', el => {
+    if (!status(el, ['serie'])) return;
+    const rows = dash.data('serie').data.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+    el.replaceChildren();
+    const W = el.clientWidth, H = 240, dates = rows.map(r => r.fecha);
+    const nights = rows.filter(r => n(r.hora_dormir_min) !== null && n(r.hora_despertar_min) !== null);
+    if (!nights.length) { el.replaceChildren(Object.assign(document.createElement('div'), {className: 'msg', textContent: 'Sin noches registradas en este periodo.'})); return; }
+    const lo = Math.floor((d3.min(nights, r => n(r.hora_dormir_min)) - 30) / 60) * 60, hi = Math.ceil((d3.max(nights, r => n(r.hora_despertar_min)) + 30) / 60) * 60;
+    const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+    const m = {top: 10, right: 8, bottom: 24, left: measureLeft(svg, ['00:00'])};
+    const x = d3.scaleBand().domain(dates).range([m.left, W - m.right]).paddingInner(0.3);
+    const y = d3.scaleLinear().domain([lo, hi]).range([m.top, H - m.bottom]);
+    const ticks = d3.range(lo, hi + 1, (hi - lo) > 600 ? 180 : 120);
+    svg.append('g').attr('class', 'grid').attr('transform', `translate(${m.left},0)`).call(d3.axisLeft(y).tickValues(ticks).tickSize(-(W - m.left - m.right)).tickFormat(''));
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(${m.left},0)`).call(d3.axisLeft(y).tickValues(ticks).tickFormat(hhmm).tickSizeOuter(0));
+    xAxis(svg, x, dates, H, m);
+    if (lo < 0 && hi > 0) svg.append('line').attr('class', 'ref').attr('x1', m.left).attr('x2', W - m.right).attr('y1', y(0)).attr('y2', y(0));
+    svg.append('g').selectAll('rect').data(nights).join('rect')
+      .attr('x', r => x(r.fecha)).attr('width', x.bandwidth()).attr('y', r => y(n(r.hora_dormir_min)))
+      .attr('height', r => Math.max(1, y(n(r.hora_despertar_min)) - y(n(r.hora_dormir_min)))).attr('rx', Math.min(3, x.bandwidth() / 2)).style('fill', col(0));
+    const tip = tipLayer(el);
+    overlay(svg, x, dates, m, H, (d, px, py) => {
+      const r = rows.find(t => t.fecha === d);
+      tip.show(px, py, [head(longDay(parseDay(d))), r && r.hora_dormir ? line('Dormiste', `${r.hora_dormir} → ${r.hora_despertar}`) : head('Sin registro')]);
+    }, () => tip.hide());
+  });
+
+  // Steps per day.
+  dash.draw('ch-pasos', el => {
+    if (!status(el, ['serie', 'serie_movil'])) return;
+    const rows = dash.data('serie').data.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+    const mov = new Map(dash.data('serie_movil').data.map(r => [r.fecha, n(r.pasos_7d)]));
+    el.replaceChildren();
+    const W = el.clientWidth, H = 220, dates = rows.map(r => r.fecha), last = dates[dates.length - 1];
+    const yMax = Math.max(1000, d3.max(rows, r => n(r.pasos) || 0)) * 1.08;
+    const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+    const m = {top: 10, right: 8, bottom: 24, left: measureLeft(svg, [f0(Math.round(yMax / 1000) * 1000)])};
+    const x = d3.scaleBand().domain(dates).range([m.left, W - m.right]).paddingInner(0.25);
+    const y = d3.scaleLinear().domain([0, yMax]).range([H - m.bottom, m.top]);
+    svg.append('g').attr('class', 'grid').attr('transform', `translate(${m.left},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.left - m.right)).tickFormat(''));
+    axisLeft(svg, y, 4, v => f0(v), m.left);
+    xAxis(svg, x, dates, H, m);
+    svg.append('g').selectAll('rect').data(rows.filter(r => n(r.pasos) !== null)).join('rect')
+      .attr('x', r => x(r.fecha)).attr('width', x.bandwidth()).attr('y', r => y(n(r.pasos))).attr('height', r => y(0) - y(n(r.pasos)))
+      .style('fill', col(0)).style('opacity', r => r.fecha === last ? 0.4 : 1);
+    const pts = dates.map(d => [d, mov.get(d)]).filter(p => p[1] !== null && p[1] !== undefined);
+    svg.append('path').datum(pts).attr('fill', 'none').style('stroke', col(3)).attr('stroke-width', 2)
+      .attr('d', d3.line().x(p => x(p[0]) + x.bandwidth() / 2).y(p => y(p[1])));
+    const tip = tipLayer(el);
+    overlay(svg, x, dates, m, H, (d, px, py) => {
+      const r = rows.find(t => t.fecha === d), nodes = [head(longDay(parseDay(d)) + (d === last ? ' (en curso)' : ''))];
+      nodes.push(r && n(r.pasos) !== null ? line('Pasos', f0(n(r.pasos))) : head('Sin registro'));
+      if (r && n(r.zona_activa_min) !== null) nodes.push(line('Zona activa', `${n(r.zona_activa_min)} min`));
+      if (r && n(r.distancia_km) !== null) nodes.push(line('Distancia', `${f1(n(r.distancia_km))} km`));
+      const mv = mov.get(d); if (mv !== null && mv !== undefined) nodes.push(line('Promedio 7 días', f0(mv)));
+      tip.show(px, py, nodes);
+    }, () => tip.hide());
+  });
+
+  // Exercise per week.
+  dash.draw('ch-ejercicio', el => {
+    if (!status(el, ['semanas'])) return;
+    const rows = dash.data('semanas').data;
+    el.replaceChildren();
+    if (!rows.length) return;
+    const W = el.clientWidth, H = 220, weeks = rows.map(r => r.semana);
+    const yMax = Math.max(60, d3.max(rows, r => r.ejercicio_min)) * 1.15;
+    const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+    const m = {top: 18, right: 8, bottom: 24, left: measureLeft(svg, [`${Math.round(yMax)} min`])};
+    const x = d3.scaleBand().domain(weeks).range([m.left, W - m.right]).paddingInner(0.35);
+    const y = d3.scaleLinear().domain([0, yMax]).range([H - m.bottom, m.top]);
+    svg.append('g').attr('class', 'grid').attr('transform', `translate(${m.left},0)`).call(d3.axisLeft(y).ticks(4).tickSize(-(W - m.left - m.right)).tickFormat(''));
+    axisLeft(svg, y, 4, v => `${v} min`, m.left);
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.bottom})`)
+      .call(d3.axisBottom(x).tickFormat(d => dayName(parseDay(d))).tickSizeOuter(0));
+    svg.append('g').selectAll('rect').data(rows).join('rect')
+      .attr('x', r => x(r.semana)).attr('width', x.bandwidth()).attr('y', r => y(r.ejercicio_min)).attr('height', r => y(0) - y(r.ejercicio_min)).style('fill', col(1));
+    if (x.bandwidth() >= 26) svg.append('g').selectAll('text').data(rows).join('text').attr('class', 'reflabel').attr('text-anchor', 'middle')
+      .attr('x', r => x(r.semana) + x.bandwidth() / 2).attr('y', r => y(r.ejercicio_min) - 5).text(r => r.sesiones ? `${r.sesiones} ses.` : '');
+    const tip = tipLayer(el);
+    overlay(svg, x, weeks, m, H, (wk, px, py) => {
+      const r = rows.find(t => t.semana === wk);
+      tip.show(px, py, [head('Semana del ' + longDay(parseDay(wk))), line('Ejercicio', `${r.ejercicio_min} min`), line('Sesiones', String(r.sesiones)), line('Zona activa', `${r.zona_activa_min} min`)]);
+    }, () => tip.hide());
+  });
+
+  // Small multiples for nightly vitals.
+  const spark = (name, key, unit, dec) => dash.draw(name, el => {
+    if (!status(el, ['serie'])) return;
+    const rows = dash.data('serie').data.slice().sort((a, b) => a.fecha < b.fecha ? -1 : 1);
+    const pts = rows.map(r => [r.fecha, n(r[key])]).filter(p => p[1] !== null);
+    el.replaceChildren();
+    if (pts.length < 2) { el.replaceChildren(Object.assign(document.createElement('div'), {className: 'msg', textContent: 'Aún no hay suficientes datos.'})); return; }
+    const W = el.clientWidth, H = 110, dates = rows.map(r => r.fecha);
+    const [a, b] = d3.extent(pts, p => p[1]), pad = Math.max((b - a) * 0.2, dec ? 0.5 : 1);
+    const svg = d3.select(el).append('svg').attr('viewBox', `0 0 ${W} ${H}`).attr('height', H);
+    const m = {top: 8, right: 8, bottom: 20, left: measureLeft(svg, [fmt(b + pad, dec)])};
+    const x = d3.scalePoint().domain(dates).range([m.left, W - m.right]);
+    const y = d3.scaleLinear().domain([a - pad, b + pad]).nice(3).range([H - m.bottom, m.top]);
+    svg.append('g').attr('class', 'grid').attr('transform', `translate(${m.left},0)`).call(d3.axisLeft(y).ticks(3).tickSize(-(W - m.left - m.right)).tickFormat(''));
+    axisLeft(svg, y, 3, v => fmt(v, dec), m.left);
+    svg.append('g').attr('class', 'axis').attr('transform', `translate(0,${H - m.bottom})`)
+      .call(d3.axisBottom(x).tickValues([dates[0], dates[dates.length - 1]]).tickFormat(d => dayName(parseDay(d))).tickSizeOuter(0));
+    svg.append('path').datum(pts).attr('fill', 'none').style('stroke', col(0)).attr('stroke-width', 2).attr('d', d3.line().x(p => x(p[0])).y(p => y(p[1])));
+    const lastP = pts[pts.length - 1];
+    svg.append('circle').attr('cx', x(lastP[0])).attr('cy', y(lastP[1])).attr('r', 3.5).style('fill', col(0));
+    const tip = tipLayer(el);
+    const step = (x.range()[1] - x.range()[0]) / Math.max(1, dates.length - 1);
+    svg.append('rect').attr('x', m.left - step / 2).attr('y', m.top).attr('width', W - m.left - m.right + step).attr('height', H - m.top - m.bottom).attr('fill', 'transparent')
+      .on('pointermove', (event) => {
+        const [px, py] = d3.pointer(event); const i = Math.max(0, Math.min(dates.length - 1, Math.round((px - m.left) / step)));
+        const d = dates[i], p = pts.find(q => q[0] === d);
+        tip.show(px, py, [head(longDay(parseDay(d))), p ? line('', `${fmt(p[1], dec)} ${unit}`) : head('Sin dato')]);
+      }).on('pointerleave', () => tip.hide());
+  });
+  spark('sp-pulso', 'pulso_reposo', 'lpm', 0);
+  spark('sp-vfc', 'vfc_ms', 'ms', 1);
+  spark('sp-spo2', 'spo2_pct', '%', 1);
+  spark('sp-resp', 'respiracion_rpm', 'resp/min', 1);
+
+  // Sessions table, newest first.
+  dash.draw('t-sesiones', tb => {
+    const s = dash.data('sesiones');
+    if (s.status !== 'ok') { tb.replaceChildren(); return; }
+    const rows = s.data.slice().sort((a, b) => (a.fecha + a.inicio < b.fecha + b.inicio ? 1 : -1));
+    if (!rows.length) {
+      const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 4; td.textContent = 'Sin sesiones en este periodo.'; tr.append(td); tb.replaceChildren(tr); return;
+    }
+    tb.replaceChildren(...rows.map(r => {
+      const tr = document.createElement('tr');
+      const cells = [longDay(parseDay(r.fecha)), r.inicio, r.nombre || r.tipo, String(r.minutos)];
+      cells.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i === 3) td.className = 'num'; tr.append(td); });
+      tr.dataset.key = encodeURIComponent(r.fecha) + ',' + encodeURIComponent(r.inicio);
+      return tr;
+    }));
+  });
+})();
+</script>
