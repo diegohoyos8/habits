@@ -50,7 +50,8 @@ globalThis.fetch = async (url, init = {}) => {
     }
     if (path === 'dataTypes/active-zone-minutes/dataPoints:dailyRollUp') return reply({ rollupDataPoints: [
       { civilStartTime: { date: { year: 2026, month: 11, day: 7 } }, activeZoneMinutes: { sumInFatBurnHeartZone: '12', sumInCardioHeartZone: '16', sumInPeakHeartZone: '0' } } ] });
-    if (path === 'dataTypes/active-minutes/dataPoints:dailyRollUp') return reply({ error: { code: 403, status: 'PERMISSION_DENIED', message: 'scope' } }, 403);
+    if (path === 'dataTypes/active-minutes/dataPoints:dailyRollUp') return reply({ error: { code: 403, status: 'PERMISSION_DENIED', message: 'Request had insufficient authentication scopes.',
+      details: [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' }] } }, 403);
     if (path.startsWith('dataTypes/exercise/dataPoints?')) return reply({ dataPoints: [
       { exercise: { interval: { startTime: '2026-11-07T07:05:00Z', startUtcOffset: '3600s', endTime: '2026-11-07T07:40:00Z', endUtcOffset: '3600s' }, exerciseType: 'WALKING', displayName: 'Walking', activeDuration: '1980s' } } ] });
     if (path.startsWith('dataTypes/daily-resting-heart-rate/dataPoints?')) return reply({ dataPoints: [
@@ -143,7 +144,7 @@ assert.equal(s.sueno.acostado, '23:10'); assert.equal(s.sueno.despierto, '06:40'
 assert.deepEqual(s.sueno.etapas, { profundo: 90, ligero: 120, rem: 225, despierto: 15 });
 assert.equal(s.sueno.siestas, 1); assert.equal(s.sueno.minutosSiestas, 25);
 assert.equal(s.pasos, 8421); assert.equal(s.minutosZonaActiva, 28);
-assert.equal(s.minutosActivos, null); assert.match(s.noDisponible.minutosActivos, /permiso/);
+assert.equal(s.minutosActivos, null); assert.match(s.noDisponible.minutosActivos, /ACCESS_TOKEN_SCOPE_INSUFFICIENT/);
 assert.deepEqual(s.ejercicios, [{ inicio: '08:05', tipo: 'WALKING', nombre: 'Walking', minutos: 33 }]);
 assert.equal(s.pulsoReposo, 58);
 assert.equal(JSON.parse(j.result.content[0].text).pasos, 8421);
