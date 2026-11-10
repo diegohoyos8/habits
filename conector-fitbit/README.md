@@ -1,6 +1,6 @@
 # Mi Fitbit: conector MCP
 
-Conector personal y de **solo lectura** que lleva los datos de tu Fitbit (Fitbit Air incluida) a Claude y a *Semanas contadas*, usando la **Google Health API**. Esta API reemplazó a la API web de Fitbit, que se apagó el 2 de noviembre de 2026.
+Conector personal y de **solo lectura** que lleva los datos de tu Fitbit (Fitbit Air incluida) a Claude y a *Habitos*, usando la **Google Health API**. Esta API reemplazó a la API web de Fitbit, que se apagó el 2 de noviembre de 2026.
 
 ## Qué entrega
 
@@ -48,7 +48,7 @@ Los valores secretos se escriben directamente en Vercel; no hace falta pegarlos 
 
 ### 4. claude.ai
 En *Configuración → Conectores → Añadir conector personalizado*:
-- Nombre: **Mi Fitbit** (*Semanas contadas* lo busca con este nombre exacto).
+- Nombre: **Fit Bit** (*Habitos* lo busca con este nombre exacto).
 - URL: `https://mi-fitbit.vercel.app/mcp`
 
 Pulsa **Conectar** y acepta los permisos en Google.

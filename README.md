@@ -1,4 +1,4 @@
-# Semanas contadas
+# Habitos
 
 Un rastreador de hábitos personal, inspirado en *Cuatro mil semanas* de Oliver Burkeman.
 Da estructura sin convertir la vida en una lista de pendientes infinita.
@@ -47,7 +47,7 @@ Todo se puede ajustar en **Ajustes**: activar o pausar, renombrar, cambiar metas
 
 ## Detalles técnicos
 
-- Un solo archivo HTML (`semanas-contadas.html`), sin dependencias más allá de dos fuentes de Google Fonts.
+- Un solo archivo HTML (`habitos.html`), sin dependencias más allá de dos fuentes de Google Fonts.
 - Se publica como Artifact de claude.ai con las capacidades `db`, `user` y `mcp` (Google Calendar y Fit Bit). Los datos viven en `data/users/<tu id>/`, privado por persona:
   - `config`: anclas, ritmos, fechas clave y metas.
   - `w-AAAA-MM-DD`: un documento por semana (clave = lunes), con los días, los ritmos, el plan y el cierre.
